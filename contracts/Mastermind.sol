@@ -73,6 +73,23 @@ enum GameState {
 contract Mastermind {
     mapping(bytes32 => Game) games;
 
+    // Pool of available games
+    bytes32[] searching_games;
+
+    /**
+     * @dev Terrible and ugly function to pop the first element of an array
+     */
+    function popFirst(bytes32[] storage arr) private {
+        require(arr.length > 0, "Array is empty");
+
+        // Shift elements to the left
+        for (uint i = 1; i < arr.length; i++) {
+            arr[i - 1] = arr[i];
+        }
+
+        // Remove the last element (which is now duplicated)
+        arr.pop();
+    }
 
     // Game Creation
 
@@ -113,6 +130,7 @@ contract Mastermind {
 
         if (_opponent == address(0)) {
             game.state = GameState.searching_opponent;
+            searching_games.push(game_id);
         } else {
             game.opponent = _opponent;
             game.state = GameState.waiting_opponent;
@@ -133,7 +151,41 @@ contract Mastermind {
         return game_id;
     }
 
+    /**
+     * @dev Add or register the opponent to an existing game
+     * @param _game The game that the opponent is joining
+     * @param _opponent The opponent address
+     */
+    function addOpponent(Game storage _game, address _opponent) internal {
+        if (_game.opponent == address(0)) {
+            _game.opponent = _opponent;
+        } else if (_game.opponent == _opponent ) {
+            _game.opponent = _opponent;
+        } else {
+            revert("You are not allowed to join this game");
+        }
+    }
+
+    /**
+     * @dev Join a game based on the supplied game id
+     * @param _game_id Id of the game to join: 
+     *                  -   If 0 search for first available game
+     */
     function joinGame(
         bytes32 _game_id
-    ) public {}
+    ) public {
+        Game storage game;
+        if (_game_id == 0) {
+            require(searching_games.length != 0, "No games available");
+            game = games[searching_games[searching_games.length]];
+
+            // Remove game from matchmaking pool
+            popFirst(searching_games);
+        } else {
+            game = games[_game_id];
+        }
+
+        addOpponent(game, msg.sender);
+        game.state = GameState.waiting_stake;
+    }
 }
