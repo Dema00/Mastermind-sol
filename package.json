@@ -10,16 +10,17 @@
   "license": "ISC",
   "description": "Some requirements we need to install before start:   - Node.js - Npm - Javascript - Typescript",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.2",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/chai": "^4.3.16",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.12.12",
     "chai": "^4.4.1",
     "hardhat": "^2.22.4",
+    "hardhat-gas-reporter": "^2.2.0",
+    "solidity-coverage": "^0.8.12",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
-    "solidity-coverage": "^0.8.12"
+    "typescript": "^5.4.5"
   },
   "directories": {
     "test": "test"

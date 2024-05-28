@@ -2,8 +2,10 @@ node_modules
 .env
 coverage
 coverage.json
+hardhat-gas-report.txt
 typechain
 typechain-types
+ignition
 gas*
 # Hardhat files
 cache
