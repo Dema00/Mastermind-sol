@@ -52,8 +52,8 @@ struct Guess {
  * @dev Enum representing the states of a Mastermind game:
  *      -   searching_opponent: no opp specified
  *      -   waiting_opponent: opp found or specified, waiting for opp to join
- *      -   waiting_stake: stake definition in progress, waiting for first stake
- *      -   confirming_stake: waiting for stake confirmation -> simple match for now
+ *      -   waiting_stake: waiting for creator to stake
+ *      -   confirming_stake: waiting for opponent to stake -> simple match for now
  *      -   ready: players have joined and game is staked
  *      -   creator_turn / opponent_turn: game in progress, turn specification
  *      -   completed: game over, scores tallied up, waiting TDisp
@@ -62,6 +62,8 @@ struct Guess {
 enum GameState {
     searching_opponent,
     waiting_opponent,
+    //TODO  add explicit order to staking protocol
+    //      maybe creator first
     waiting_stake,
     confirming_stake,
     ready,
@@ -102,20 +104,13 @@ library MastermindHelper {
  * @notice The smart contract implements the game "Mastermind"
  */
 contract Mastermind {
+    // Active games
     mapping(bytes32 => Game) games;
+    // Mapping to keep track of failed staking attempt funds 
+    mapping(address => uint) pending_return;
 
-    // Pool of available games
+    // Pool of available open games
     bytes32[] searching_games;
-
-    //-----------------
-    //PAYMENT FUNCTIONS
-    //-----------------
-
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
-
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
 
     //-----------------
     //     EVENTS
@@ -133,7 +128,14 @@ contract Mastermind {
      * @param _game_id Id of the game
      * @param _stake  Amount staked by both parties
      */
-    event StakeSuccesfull(bytes32 indexed _game_id, uint _stake);
+    event StakeSuccessful(bytes32 indexed _game_id, uint _stake);
+
+
+    //-----------------
+    //     ERRORS
+    //-----------------
+
+    error FailedStake();
 
     //------------------
     //  LOBBY METHODS
@@ -237,26 +239,52 @@ contract Mastermind {
         game.state = GameState.waiting_stake;
     }
 
-    function proposeStake(bytes32 _game_id, uint _stake) public {
+    /**
+     * @dev Modeled on the example 
+     *      https://docs.soliditylang.org/en/latest/solidity-by-example.html#simple-open-auction
+     *      TODO: withdraw function on the example model
+     * @param _game_id Id of the game to stake
+     */
+    function proposeStake(bytes32 _game_id) payable public {
         require(_game_id != 0, "No game specified");
         Game storage game = games[_game_id];
         
         require(
             game.state == GameState.waiting_stake 
             || game.state == GameState.confirming_stake, 
-            "Not staking game");
+            "Game not in staking phase");
         require(game.uuid != 0, "No game with the supplied id");
+        require(game.opponent == msg.sender
+                || game.creator == msg.sender,
+                "Sender not part of game");
+        require(
+                (
+                    (game.creator == msg.sender) &&
+                    (game.state == GameState.waiting_stake)
+                )
+                ||
+                (
+                    (game.opponent == msg.sender) &&
+                    (game.state == GameState.confirming_stake)
+                ),
+                "Not message sender staking turn"
+            );
 
+        // To properly implement withdraw function explicit protocol order needed
         if (game.state == GameState.waiting_stake) {
-            game.stake = _stake;
+            game.stake = msg.value;
             game.state = GameState.confirming_stake;
-        } else if (game.state == GameState.confirming_stake && game.stake == _stake) {
-            emit StakeSuccesfull(game.uuid, _stake);
-            //TODO getMoney()
+        } else if (game.state == GameState.confirming_stake &&
+            game.stake == msg.value) {
+
+            emit StakeSuccessful(game.uuid, msg.value);
             //TODO beginGame()
-        } else if (game.state == GameState.confirming_stake && game.stake != _stake) {
+        } else if (game.state == GameState.confirming_stake && game.stake != msg.value) {
             game.state = GameState.waiting_stake;
-            //TODO FailedStake() event
+            //Add failed staking funds to withdrawable funds
+            pending_return[game.creator] += game.stake;
+            //Revert contract, give funds back to opponent
+            revert FailedStake();
         }
 
     }
