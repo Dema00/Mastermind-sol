@@ -8,9 +8,20 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Some requirements we need to install before start:   - Node.js - Npm - Javascript - Typescript",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^2.22.3"
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.2",
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.12",
+    "chai": "^4.4.1",
+    "hardhat": "^2.22.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "solidity-coverage": "^0.8.12"
+  },
+  "directories": {
+    "test": "test"
   }
 }
