@@ -283,8 +283,7 @@ contract Mastermind {
             game.state = GameState.waiting_stake;
             //Add failed staking funds to withdrawable funds
             pending_return[game.creator] += game.stake;
-            //Revert contract, give funds back to opponent
-            revert FailedStake();
+            pending_return[game.opponent] += msg.value;
         }
 
     }
