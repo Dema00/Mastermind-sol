@@ -3,13 +3,12 @@ pragma solidity ^0.8.24;
 
 import "hardhat/console.sol";
 
-
 /**
  * @dev Internal state of a Mastermind game
  */
 struct Game {
     // General game info
-    bytes32 uuid; 
+    //bytes32 uuid; 
     address creator;
     address opponent;
 
@@ -52,9 +51,7 @@ struct Guess {
  * @dev Enum representing the states of a Mastermind game:
  *      -   searching_opponent: no opp specified
  *      -   waiting_opponent: opp found or specified, waiting for opp to join
- *      -   waiting_stake: stake definition in progress, waiting for first stake
- *      -   confirming_stake: waiting for stake confirmation -> simple match for now
- *      -   ready: players have joined and game is staked
+ *      -   waiting_stake: stake definition in progress
  *      -   creator_turn / opponent_turn: game in progress, turn specification
  *      -   completed: game over, scores tallied up, waiting TDisp
  *      -   locked: TDisp expired, game archived, stake paid
@@ -63,38 +60,10 @@ enum GameState {
     searching_opponent,
     waiting_opponent,
     waiting_stake,
-    confirming_stake,
-    ready,
     creator_turn,
     opponent_turn,
     completed,
     locked
-}
-
-library MastermindHelper {
-    
-    /**
-     * @dev Terrible and ugly function to pop the first element of an array
-     */
-    function pop_first(bytes32[] storage arr) public {
-        require(arr.length > 0, "Array is empty");
-
-        // Shift elements to the left
-        for (uint i = 1; i < arr.length; i++) {
-            arr[i - 1] = arr[i];
-        }
-
-        // Remove the last element (which is now duplicated)
-        arr.pop();
-    }
-
-    /**
-     * @dev Generates the UUID of a new game using the sender's address and the
-     *      block timestamp.
-     */
-    function create_game_uuid() public view returns(bytes32) {
-        return keccak256(abi.encodePacked(block.timestamp,msg.sender));
-    }
 }
 
 /**
@@ -107,37 +76,30 @@ contract Mastermind {
     // Pool of available games
     bytes32[] searching_games;
 
-    //-----------------
-    //PAYMENT FUNCTIONS
-    //-----------------
+    /**
+     * @dev Terrible and ugly function to pop the first element of an array
+     */
+    function popFirst(bytes32[] storage arr) private {
+        require(arr.length > 0, "Array is empty");
 
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
+        // Shift elements to the left
+        for (uint i = 1; i < arr.length; i++) {
+            arr[i - 1] = arr[i];
+        }
 
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
+        // Remove the last element (which is now duplicated)
+        arr.pop();
+    }
 
-    //-----------------
-    //     EVENTS
-    //-----------------
+    // Game Creation
 
     /**
-     * @dev Log a successful matchmaking instance
-     * @param _game_id Id of the game associated with the match
-     * @param _ready_time Timestamp of succesfull matchmaking
+     * @dev Generates the UUID of a new game using the sender's address and the
+     *      block timestamp.
      */
-    event GameReady(bytes32 indexed _game_id, uint _ready_time);
-
-    /**
-     * @dev Log a succesfull staking procedure
-     * @param _game_id Id of the game
-     * @param _stake  Amount staked by both parties
-     */
-    event StakeSuccesfull(bytes32 indexed _game_id, uint _stake);
-
-    //------------------
-    //  LOBBY METHODS
-    //------------------
+    function createGameUUID() private view returns(bytes32) {
+        return keccak256(abi.encodePacked(block.timestamp,msg.sender));
+    }
     
     /**
      * 
@@ -158,14 +120,13 @@ contract Mastermind {
     ) 
     public returns(bytes32) {
         // Get game id
-        bytes32 game_id = MastermindHelper.create_game_uuid();
+        bytes32 game_id = createGameUUID();
 
         // Initialize empty game struct in function memory
         Game memory game;
 
         // Set players
         game.creator = msg.sender;
-        game.uuid = game_id;
 
         if (_opponent == address(0)) {
             game.state = GameState.searching_opponent;
@@ -196,22 +157,13 @@ contract Mastermind {
      * @param _opponent The opponent address
      */
     function addOpponent(Game storage _game, address _opponent) internal {
-        // Check game state
-        require(_game.state == GameState.searching_opponent ||
-                _game.state == GameState.waiting_opponent,
-                "[Internal Error] Game should not be in queue");
-
-        if (_game.state == GameState.searching_opponent) {
+        if (_game.opponent == address(0)) {
             _game.opponent = _opponent;
-        } else if ( _game.opponent == _opponent &&
-                    _game.state == GameState.waiting_opponent ) {
+        } else if (_game.opponent == _opponent ) {
             _game.opponent = _opponent;
         } else {
             revert("You are not allowed to join this game");
         }
-
-        // Emit game readiness signal, useful for the client, will be used with web3.js or python
-        emit GameReady(_game.uuid, block.timestamp);
     }
 
     /**
@@ -228,45 +180,12 @@ contract Mastermind {
             game = games[searching_games[searching_games.length]];
 
             // Remove game from matchmaking pool
-            MastermindHelper.pop_first(searching_games);
+            popFirst(searching_games);
         } else {
             game = games[_game_id];
         }
 
         addOpponent(game, msg.sender);
         game.state = GameState.waiting_stake;
-    }
-
-    function proposeStake(bytes32 _game_id, uint _stake) public {
-        require(_game_id != 0, "No game specified");
-        Game storage game = games[_game_id];
-        
-        require(
-            game.state == GameState.waiting_stake 
-            || game.state == GameState.confirming_stake, 
-            "Not staking game");
-        require(game.uuid != 0, "No game with the supplied id");
-
-        if (game.state == GameState.waiting_stake) {
-            game.stake = _stake;
-            game.state = GameState.confirming_stake;
-        } else if (game.state == GameState.confirming_stake && game.stake == _stake) {
-            emit StakeSuccesfull(game.uuid, _stake);
-            //TODO getMoney()
-            //TODO beginGame()
-        } else if (game.state == GameState.confirming_stake && game.stake != _stake) {
-            game.state = GameState.waiting_stake;
-            //TODO FailedStake() event
-        }
-
-    }
-
-    //------------------
-    //   GAME METHODS
-    //------------------
-
-    function beginGame(Game storage _game) private {
-        require(_game.state == GameState.ready, "[Internal Error] Supplied game cannot be started");
-        //TODO
     }
 }
