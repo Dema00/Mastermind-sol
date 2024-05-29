@@ -10,14 +10,12 @@ import "hardhat/console.sol";
  *      -   waiting_stake: waiting for creator to stake
  *      -   confirming_stake: waiting for opponent to stake -> simple match for now
  *      -   ready: players have joined and game is staked
- *      -   creator_turn / opponent_turn: game in progress, turn specification
+ *      -   playing: game in progress, alternating turns
  *      -   completed: game over
  */
 enum GameState {
     searching_opponent,
     waiting_opponent,
-    //TODO  add explicit order to staking protocol
-    //      maybe creator first
     waiting_stake,
     confirming_stake,
     ready,
