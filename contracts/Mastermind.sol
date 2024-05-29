@@ -26,14 +26,18 @@ struct Game {
 
     // Current game state
     GameState state;
-    Turn[] turns;
+    mapping(uint => Turn) turns;
+    uint curr_turn;
+        // The player that acts as the CodeBreaker during the first round
+    address first_code_breaker;
 }
 
 /**
  * @dev Representation of a Mastermind turn 
  */
 struct Turn {
-    Guess[] guesses;
+    mapping(uint => Guess) guesses;
+    uint guess_num;
 }
 
 /**
@@ -42,7 +46,7 @@ struct Turn {
  *      -   uint contains the CC and the NC values
  */
 struct Guess {
-    bytes1[] guess;
+    mapping(uint => bytes1) guess;
     // idx 0 -> CC (pos, symbol)
     // idx 1 -> NC (!pos, symbol)
     uint[2] response;
@@ -162,8 +166,8 @@ contract Mastermind {
         // Get game id
         bytes32 game_id = MastermindHelper.create_game_uuid();
 
-        // Initialize empty game struct in function memory
-        Game memory game;
+        // Initialize empty game struct in storage
+        Game storage game = games[game_id];
 
         // Set players
         game.creator = msg.sender;
@@ -185,9 +189,6 @@ contract Mastermind {
         game.code_len = _code_len;
         game.code_symbols_amt = _code_symbols_amt;
 
-        // Insert game in storage
-        games[game_id] = game;
-
         // Return game_id
         return game_id;
     }
@@ -205,9 +206,10 @@ contract Mastermind {
 
         if (_game.state == GameState.searching_opponent) {
             _game.opponent = _opponent;
+            _game.state = GameState.waiting_stake;
         } else if ( _game.opponent == _opponent &&
                     _game.state == GameState.waiting_opponent ) {
-            _game.opponent = _opponent;
+            _game.state = GameState.waiting_stake;
         } else {
             revert("You are not allowed to join this game");
         }
@@ -236,7 +238,6 @@ contract Mastermind {
         }
 
         addOpponent(game, msg.sender);
-        game.state = GameState.waiting_stake;
     }
 
     /**
@@ -270,13 +271,14 @@ contract Mastermind {
                 "Not message sender staking turn"
             );
 
-        // To properly implement withdraw function explicit protocol order needed
+        // If you are the creator the games needs to be in waiting_stake
+        // If you are the opponent the games needs to be in confirming_stake
         if (game.state == GameState.waiting_stake) {
             game.stake = msg.value;
             game.state = GameState.confirming_stake;
         } else if (game.state == GameState.confirming_stake &&
             game.stake == msg.value) {
-
+            game.state = GameState.ready;
             emit StakeSuccessful(game.uuid, msg.value);
             //TODO beginGame()
         } else if (game.state == GameState.confirming_stake && game.stake != msg.value) {
@@ -295,5 +297,6 @@ contract Mastermind {
     function beginGame(Game storage _game) private {
         require(_game.state == GameState.ready, "[Internal Error] Supplied game cannot be started");
         //TODO
+        // emit beginTurn(codemaker, codebreaker)
     }
 }
