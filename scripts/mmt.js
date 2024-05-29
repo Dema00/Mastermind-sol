@@ -1,37 +1,36 @@
 // .load scripts/mmt.js
 
-// Step 1: Get the deployer account
-const [deployer] = await ethers.getSigners();
-console.log("Deployer address:", deployer.address);
+const hre = require("hardhat");
 
-// Step 2: Attach to the deployed contract
-const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"; // Replace with your contract's address
+async function main() {
+  const [deployer] = await hre.ethers.getSigners();
 
-const Mm = await ethers.getContractFactory("Mastermind");
-const mm = await Mm.attach(contractAddress);
+  const mastermindAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Replace with your deployed contract address
+  const Mastermind = await hre.ethers.getContractFactory("Mastermind", {
+        libraries: {
+            MastermindHelper: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        },
+        });
+  const mastermind = await Mastermind.attach(mastermindAddress);
 
-// Step 3: Check the unlock time
-const unlockTime = await mm.unlockTime();
-console.log("Unlock time:", unlockTime.toString());
+  // Example: Create a game
+  const txCreateGame = await mastermind.createGame(
+    "0x0000000000000000000000000000000000000000", // No specific opponent
+    4, // Code length
+    6, // Number of symbols
+    10 // Bonus points
+  );
 
-// Step 4: Check the contract balance (amount of funds that can be retrieved)
-// const contractBalance = await ethers.provider.getBalance(lock.address);
-// console.log("Contract balance (funds to be retrieved):", ethers.utils.formatEther(contractBalance), "ETH");
-// const contractBalance2 = await ethers.provider.getBalance(contractAddress);
-// const formattedBalance = ethers.utils.formatEther(contractBalance);
-// console.log("Contract balance (funds to be retrieved):", formattedBalance, "ETH");
+  console.log("Transaction hash for createGame:", txCreateGame.hash);
 
-// Step 5: Attempt to withdraw if unlock time has passed
-const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
-if (currentTime >= unlockTime) {
-    console.log("Entrato in Withdrawal");
-    const tx = await lock.withdraw();
-    await tx.wait();
-    console.log("Withdrawal successful");
-
-    // Step 6: Check the contract balance after withdrawal
-    const newContractBalance = await ethers.provider.getBalance(lock.address);
-    console.log("New contract balance:", ethers.utils.formatEther(newContractBalance), "ETH");
-} else {
-    console.log("Unlock time hasn't passed yet. Please wait.");
+  // Example: Join a game
+  const txJoinGame = await mastermind.joinGame("0"); // Replace with your game ID
+  console.log("Transaction hash for joinGame:", txJoinGame.hash);
 }
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
