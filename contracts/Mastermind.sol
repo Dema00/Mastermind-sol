@@ -3,6 +3,27 @@ pragma solidity ^0.8.24;
 
 import "hardhat/console.sol";
 
+/**
+ * @dev Enum representing the states of a Mastermind game:
+ *      -   searching_opponent: no opp specified
+ *      -   waiting_opponent: opp found or specified, waiting for opp to join
+ *      -   waiting_stake: waiting for creator to stake
+ *      -   confirming_stake: waiting for opponent to stake -> simple match for now
+ *      -   ready: players have joined and game is staked
+ *      -   creator_turn / opponent_turn: game in progress, turn specification
+ *      -   completed: game over
+ */
+enum GameState {
+    searching_opponent,
+    waiting_opponent,
+    //TODO  add explicit order to staking protocol
+    //      maybe creator first
+    waiting_stake,
+    confirming_stake,
+    ready,
+    playing,
+    completed
+}
 
 /**
  * @dev Internal state of a Mastermind game
@@ -22,7 +43,6 @@ struct Game {
     uint bonus;
     uint code_len;
     uint code_symbols_amt;
-    bytes32 secret;
 
     // Current game state
     GameState state;
@@ -33,11 +53,34 @@ struct Game {
 }
 
 /**
+ * @dev Enum representing tate of a Mastermind turn instance:
+ *      -   defining_secret: waiting for CodeMaker to define secret
+ *      -   guessing: waiting for CodeBreaker to send guess
+ *      -   giving_feedback: waiting for CodeMaker to give feedback
+ *      -   revealing_code: waiting for CodeMaker to reveal code AND salt
+ *      -   turn_over: turn is over, waiting TDisp
+ *      -   lock: TDisp expired, turn results locked
+ */
+enum TurnState {
+    defining_secret,
+    guessing,
+    giving_feedback,
+    revealing_code,
+    turn_over,
+    lock
+}
+
+/**
  * @dev Representation of a Mastermind turn 
  */
 struct Turn {
     mapping(uint => Guess) guesses;
     uint guess_num;
+    bytes32 code_hash;
+
+    // Set at the end of the turn
+    bytes4 salt;
+    mapping(uint => bytes1) code_solution;
 }
 
 /**
@@ -50,31 +93,6 @@ struct Guess {
     // idx 0 -> CC (pos, symbol)
     // idx 1 -> NC (!pos, symbol)
     uint[2] response;
-}
-
-/**
- * @dev Enum representing the states of a Mastermind game:
- *      -   searching_opponent: no opp specified
- *      -   waiting_opponent: opp found or specified, waiting for opp to join
- *      -   waiting_stake: waiting for creator to stake
- *      -   confirming_stake: waiting for opponent to stake -> simple match for now
- *      -   ready: players have joined and game is staked
- *      -   creator_turn / opponent_turn: game in progress, turn specification
- *      -   completed: game over, scores tallied up, waiting TDisp
- *      -   locked: TDisp expired, game archived, stake paid
- */
-enum GameState {
-    searching_opponent,
-    waiting_opponent,
-    //TODO  add explicit order to staking protocol
-    //      maybe creator first
-    waiting_stake,
-    confirming_stake,
-    ready,
-    creator_turn,
-    opponent_turn,
-    completed,
-    locked
 }
 
 library MastermindHelper {
@@ -163,6 +181,7 @@ contract Mastermind {
         uint _bonus
     ) 
     public returns(bytes32) {
+        //TODO require _opponent != msg.sender
         // Get game id
         bytes32 game_id = MastermindHelper.create_game_uuid();
 
@@ -226,6 +245,7 @@ contract Mastermind {
     function joinGame(
         bytes32 _game_id
     ) public {
+        //TODO check if the player is joining its own game
         Game storage game;
         if (_game_id == 0) {
             require(searching_games.length != 0, "No games available");
