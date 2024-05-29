@@ -312,7 +312,7 @@ contract Mastermind {
             game.stake == msg.value) {
             game.state = GameState.ready;
             emit StakeSuccessful(game.uuid, msg.value);
-            //TODO beginGame()
+            beginGame(game);
         } else if (game.state == GameState.confirming_stake && game.stake != msg.value) {
             game.state = GameState.waiting_stake;
             //Add failed staking funds to withdrawable funds
@@ -320,6 +320,30 @@ contract Mastermind {
             pending_return[game.opponent] += msg.value;
         }
 
+    }
+
+    /**
+     * @dev Wei withdraw function taken from the example 
+     *      https://docs.soliditylang.org/en/latest/solidity-by-example.html#simple-open-auction
+     */
+    function withdraw() external returns (bool) {
+        uint amount = pending_return[msg.sender];
+        if (amount > 0) {
+            // It is important to set this to zero because the recipient
+            // can call this function again as part of the receiving call
+            // before `send` returns.
+            pending_return[msg.sender] = 0;
+
+            // msg.sender is not of type `address payable` and must be
+            // explicitly converted using `payable(msg.sender)` in order
+            // use the member function `send()`.
+            if (!payable(msg.sender).send(amount)) {
+                // No need to call throw here, just reset the amount owing
+                pending_return[msg.sender] = amount;
+                return false;
+            }
+        }
+        return true;
     }
 
     //------------------
