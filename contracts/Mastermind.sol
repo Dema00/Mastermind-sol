@@ -6,6 +6,7 @@ import "hardhat/console.sol";
 import "./lib/Helper.sol";
 import "./lib/GameState.sol";
 import "./lib/Lobby.sol";
+import "./lib/Game.sol";
 
 /**
  * @title Mastermind
@@ -27,9 +28,9 @@ contract Mastermind {
     /**
      * @dev Log a successful matchmaking instance
      * @param _game_id Id of the game associated with the match
-     * @param _ready_time Timestamp of succesfull matchmaking
+     * @param _matchmaking_time Timestamp of succesfull matchmaking
      */
-    event GameReady(bytes32 indexed _game_id, uint _ready_time);
+    event PlayersReady(bytes32 indexed _game_id, uint _matchmaking_time);
 
     /**
      * @dev Log a succesfull staking procedure
@@ -37,6 +38,13 @@ contract Mastermind {
      * @param _stake  Amount staked by both parties
      */
     event StakeSuccessful(bytes32 indexed _game_id, uint _stake);
+
+    /**
+     * @dev Log the beginning of the game
+     * @param _game_id Id of the game
+     * @param _creator_is_first_breaker Self explanatory name
+     */
+    event GameStart( bytes32 indexed _game_id, bool _creator_is_first_breaker);
 
 
     //-----------------
@@ -119,7 +127,7 @@ contract Mastermind {
         LobbyFunction.addOpponent(game, msg.sender);
  
         // Emit game readiness signal, useful for the client, will be used with web3.js or python
-        emit GameReady(game.uuid, block.timestamp);
+        emit PlayersReady(game.uuid, block.timestamp);
     }
 
     /**
@@ -174,9 +182,26 @@ contract Mastermind {
     //   GAME METHODS
     //------------------
 
+    /**
+     * @dev Begin Game
+     * @param _game Game to begin
+     */
     function beginGame(Game storage _game) private {
-        require(_game.state == GameState.ready, "[Internal Error] Supplied game cannot be started");
+        GameFunction.beginGame(_game);
+        emit GameStart(_game.uuid, _game.creator_is_first_breaker);
+    }
+
+    /**
+     * @dev Set secret code hash
+     * @param _game_id id of the game
+     * @param _code_hash hash of the secret code
+     */
+    function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public {
+        Game storage game = games[_game_id];
+        GameFunction.setTurnCode(game,_code_hash);
+    }
+
+    function guess(bytes32 _game_id, bytes32 _payload) public {
         //TODO
-        // emit beginTurn(codemaker, codebreaker)
     }
 }

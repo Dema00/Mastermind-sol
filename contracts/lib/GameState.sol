@@ -60,7 +60,7 @@ struct Game {
     mapping(uint => Turn) turns;
     uint curr_turn;
         // The player that acts as the CodeBreaker during the first round
-    address first_code_breaker;
+    bool creator_is_first_breaker;
 }
 
 /**
@@ -100,8 +100,11 @@ enum TurnState {
  */
 struct Turn {
     mapping(uint => Guess) guesses;
-    uint guess_num;
+    uint curr_guess;
     bytes32 code_hash;
+
+    // Turn state
+    TurnState state;
 
     // Set at the end of the turn
     bytes4 salt;

@@ -47,6 +47,10 @@ library LobbyFunction {
         _game.state = GameState.waiting_stake;
     }
 
+    /**
+     * @dev Validate and execute a staking operation
+     * @param _game Game being staked
+     */
     function manageStake(
         Game storage _game
     ) internal{
