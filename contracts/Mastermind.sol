@@ -12,6 +12,21 @@ import "hardhat/console.sol";
  *      -   ready: players have joined and game is staked
  *      -   playing: game in progress, alternating turns
  *      -   completed: game over
+ *                                                         
+ * ┌────────────────────┐       ┌──────────────────┐      
+ * │ searching_opponent ├────┬─►│ waiting_opponent │      
+ * └────────────────────┘    │  └──────┬───────────┘      
+ *                           │         │                  
+ *                           ▼         ▼                  
+ * ┌──────────────────┐    ┌───────────────┐              
+ * │ confirming_stake │ ◄──┤ waiting_stake │              
+ * └───┬──────────────┘    └───────────────┘              
+ *     │                                                  
+ *     ▼                                                  
+ * ┌───────┐        ┌─────────┐       ┌───────────┐       
+ * │ ready ├───────►│ playing ├──────►│ completed │       
+ * └───────┘        └─────────┘       └───────────┘       
+ *                                                        
  */
 enum GameState {
     searching_opponent,
