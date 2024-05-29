@@ -68,6 +68,8 @@ contract Mastermind {
     ) 
     public returns(bytes32) {
         //TODO require _opponent != msg.sender
+        require(_opponent != msg.sender, "The opponent cannot be the game creator");
+        
         // Get game id
         bytes32 game_id = MastermindHelper.create_game_uuid();
 
@@ -107,24 +109,18 @@ contract Mastermind {
         bytes32 _game_id
     )
     public {
-        //TODO check if the player is joining its own game
-        Game storage game;
+        //Retrieve Game
         if (_game_id == 0) {
-            require(searching_games.length != 0, "No games available");
-            game = games[searching_games[searching_games.length]];
-
-            // Remove game from matchmaking pool
+            _game_id = searching_games[searching_games.length];
             MastermindHelper.pop_first(searching_games);
-        } else {
-            game = games[_game_id];
         }
+        Game storage game = games[_game_id];
 
-        if (Lobby.addOpponent(game, msg.sender) == false) {
-            revert("Cannot join game with supplied Id");
-        } else {
-            // Emit game readiness signal, useful for the client, will be used with web3.js or python
-            emit GameReady(game.uuid, block.timestamp);
-        }
+        //If sender is not the designated opponent revert
+        LobbyFunction.addOpponent(game, msg.sender);
+ 
+        // Emit game readiness signal, useful for the client, will be used with web3.js or python
+        emit GameReady(game.uuid, block.timestamp);
     }
 
     /**
