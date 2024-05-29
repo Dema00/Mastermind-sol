@@ -67,7 +67,6 @@ contract Mastermind {
         uint _bonus
     ) 
     public returns(bytes32) {
-        //TODO require _opponent != msg.sender
         require(_opponent != msg.sender, "The opponent cannot be the game creator");
         
         // Get game id
@@ -133,47 +132,17 @@ contract Mastermind {
         bytes32 _game_id
     )
     payable public {
-        require(_game_id != 0, "No game specified");
         Game storage game = games[_game_id];
         
-        require(
-            game.state == GameState.waiting_stake 
-            || game.state == GameState.confirming_stake, 
-            "Game not in staking phase");
-        require(game.uuid != 0, "No game with the supplied id");
-        require(game.opponent == msg.sender
-                || game.creator == msg.sender,
-                "Sender not part of game");
-        require(
-                (
-                    (game.creator == msg.sender) &&
-                    (game.state == GameState.waiting_stake)
-                )
-                ||
-                (
-                    (game.opponent == msg.sender) &&
-                    (game.state == GameState.confirming_stake)
-                ),
-                "Not message sender staking turn"
-            );
+        LobbyFunction.manageStake(game);
 
-        // If you are the creator the games needs to be in waiting_stake
-        // If you are the opponent the games needs to be in confirming_stake
-        if (game.state == GameState.waiting_stake) {
-            game.stake = msg.value;
-            game.state = GameState.confirming_stake;
-        } else if (game.state == GameState.confirming_stake &&
-            game.stake == msg.value) {
-            game.state = GameState.ready;
+        if (game.state == GameState.ready) {
             emit StakeSuccessful(game.uuid, msg.value);
             beginGame(game);
-        } else if (game.state == GameState.confirming_stake && game.stake != msg.value) {
-            game.state = GameState.waiting_stake;
-            //Add failed staking funds to withdrawable funds
+        } else if (game.state == GameState.waiting_stake) {
             pending_return[game.creator] += game.stake;
             pending_return[game.opponent] += msg.value;
         }
-
     }
 
     /**

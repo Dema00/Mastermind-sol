@@ -17,7 +17,7 @@ pragma solidity ^0.8.24;
  *                           │         │                  
  *                           ▼         ▼                  
  * ┌──────────────────┐    ┌───────────────┐              
- * │ confirming_stake │ ◄──┤ waiting_stake │              
+ * │ confirming_stake │◄──►│ waiting_stake │              
  * └───┬──────────────┘    └───────────────┘              
  *     │                                                  
  *     ▼                                                  
