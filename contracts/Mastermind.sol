@@ -58,6 +58,20 @@ struct Game {
  *      -   revealing_code: waiting for CodeMaker to reveal code AND salt
  *      -   turn_over: turn is over, waiting TDisp
  *      -   lock: TDisp expired, turn results locked
+ * 
+ *   ┌─────────────────┐                                                  
+ *   │ defining_secret │                                                  
+ *   └───┬─────────────┘                                                  
+ *       │                                                                
+ *       ▼                                                                
+ *   ┌──────────┐         ┌─────────────────┐                             
+ *   │ guessing │◄───────►│ giving_feedback │                             
+ *   └──────────┘         └────────┬────────┘                             
+ *                                 │                                      
+ *                                 ▼                                      
+ *                        ┌────────────────┐   ┌───────────┐   ┌──────┐   
+ *                        │ revealing_code ├──►│ turn_over ├──►│ lock │   
+ *                        └────────────────┘   └───────────┘   └──────┘   
  */
 enum TurnState {
     defining_secret,
