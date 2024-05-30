@@ -158,7 +158,7 @@ library GameFunction {
     }
 
     /**
-     * @dev Set a Turn solution
+     * @dev Set the solution of the current Turn
      * @param _game Game whose current Turn entry is edited  
      * @param _code Solution code
      * @param _salt Salt of the secret_hash entry 
@@ -168,7 +168,26 @@ library GameFunction {
         bytes1[] calldata _code,
         bytes4 _salt
     ) internal {
+
+        //Check game state
+        require(
+            _game.state == GameState.playing,
+            "Cannot advance game not in playing state"
+        );
+
         Turn storage turn = _game.turns[_game.curr_turn];
+
+        //Check turn state
+        require(
+            turn.state == TurnState.revealing_code,
+            "Turn not in giving_feedback state"
+        );
+
+        //Check sender identity
+        require(
+            getCurrBreaker(_game, false) == msg.sender,
+            "Message sender is not the codemaker"
+        );
 
         // Set code_solution content in Turn
         for(uint i = 0; i < _game.code_len; i++) {
@@ -178,8 +197,8 @@ library GameFunction {
     }
 
     /**
-     * @dev Check the correctness of the supplied solution code
-     * @param _game Game whose Turn gets checked
+     * @dev Check the correctness of the supplied solution code of the last Turn
+     * @param _game Game whose last Turn gets checked
      * @param _code Solution code
      * @param _salt Solution salt
      */
@@ -194,5 +213,9 @@ library GameFunction {
 
     function setTurnState(Game storage _game, TurnState _state) internal {
         _game.turns[_game.curr_turn].state = _state;
+    }
+
+    function setTurnLockTime(Game storage _game, uint _t_disp) internal {
+        _game.turns[_game.curr_turn].lock_time = block.timestamp + _t_disp;
     }
 }

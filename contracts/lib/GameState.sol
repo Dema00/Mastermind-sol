@@ -69,30 +69,28 @@ struct Game {
  *      -   guessing: waiting for CodeBreaker to send guess
  *      -   giving_feedback: waiting for CodeMaker to give feedback
  *      -   revealing_code: waiting for CodeMaker to reveal code AND salt
- *      -   turn_over: turn is over, waiting TDisp
- *      -   lock: TDisp expired, turn results locked
+ *      -   turn_over: turn is over, add TDispt to variable lock_time
  * 
- *   ┌─────────────────┐                                                  
- *   │ defining_secret │                                                  
- *   └───┬─────────────┘                                                  
- *       │                                                                
- *       ▼                                                                
- *   ┌──────────┐         ┌─────────────────┐                             
- *   │ guessing │◄───────►│ giving_feedback │                             
- *   └──────────┘         └────────┬────────┘                             
- *                                 │      ┌──────────────────────┐                              
- *                                 ▼      |                      ▼                                
- *                        ┌────────────────┐   ┌───────────┐   ┌──────┐   
- *                        │ revealing_code ├──►│ turn_over ├──►│ lock │   
- *                        └────────────────┘   └───────────┘   └──────┘   
+ *   ┌─────────────────┐                     
+ *   │ defining_secret │                     
+ *   └───┬─────────────┘                     
+ *       │                                   
+ *       ▼                                   
+ *   ┌──────────┐         ┌─────────────────┐ 
+ *   │ guessing │◄───────►│ giving_feedback │ 
+ *   └──────────┘         └────────┬────────┘ 
+ *                                 │      
+ *                                 ▼        
+ *                        ┌────────────────┐   ┌───────────┐   
+ *                        │ revealing_code ├──►│ turn_over │   
+ *                        └────────────────┘   └───────────┘   
  */
 enum TurnState {
     defining_secret,
     guessing,
     giving_feedback,
     revealing_code,
-    turn_over,
-    lock
+    turn_over
 }
 
 /**
@@ -105,6 +103,9 @@ struct Turn {
 
     // Turn state
     TurnState state;
+    // Time after which the Turn will not be able to be disputed
+    // meaning lock_time = T_endTurn + T_dispute
+    uint lock_time;
 
     // Set at the end of the turn
     bytes4 salt;
