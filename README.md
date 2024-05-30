@@ -87,9 +87,10 @@ Both commands can be run without spin up any chain server, this because Hardhat 
 ## Compile, Deploy, Use
 Compile using `npx hardhat compile` the files in **/contracts**, this generate two files per compiled contract: an artifact(.json) and a debug file(.dbg.json). Can be used `npx hardhat clean` to clear the cache and to delete the artifact.  
 Deployments are defined through Ignition Modules, these are abstraction to describe a deployment.   
-Before launch the ignition script `npx hardhat ignition deploy ./ignition/modules/Lock.ts --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.
+Before launch the ignition script `npx hardhat ignition deploy ./ignition/modules/<Contract-name>.ts --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.
 _____________________________________________________________  
-OPPURE FUNZIONA ANCHE
-Before launch the deployment script `npx hardhat run scripts/deploy.js --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.  
+DEPLOING ALSO WORKS AS  
+launch the deployment script `npx hardhat run scripts/deploy.js --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.  
 _____________________________________________________________  
-{The command you should use depends on what you want to do. If you want to deploy your contracts, use `npx hardhat deploy`. If you want to run a specific script, use `npx hardhat run <script>` or `npx hardhat ignition deploy <ignition>`.}
+{The command you should use depends on what you want to do. If you want to deploy your contracts, use `npx hardhat deploy`. If you want to run a specific script, use `npx hardhat run <script>` or (deploy/ignite) `npx hardhat ignition deploy <ignition>`.}  
+Can manually interact with the contract using `npx hardat console --network <net-name>`.
