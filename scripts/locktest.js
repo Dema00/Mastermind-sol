@@ -1,4 +1,4 @@
-// .load scripts/simple-test.js
+// .load scripts/locktest.js
 
 // Step 1: Get the deployer account
 const [deployer] = await ethers.getSigners();
