@@ -71,4 +71,37 @@ library GameFunction {
 
         turn.code_hash = _code_hash;
     }
+
+    function getCurrBreaker(Game storage _game) internal returns (address) {
+        address[2] memory players = 
+        _game.creator_is_first_breaker ? 
+        [_game.creator, _game.opponent] : [_game.opponent, _game.creator];
+        return players[_game.curr_turn % 2];
+    }
+    
+    function addGuess(Game storage _game, bytes1[] memory _guess) internal {
+        require(
+            _game.state == GameState.playing,
+            "Cannot advance game not in playing state"
+        );
+
+        require(
+            _game.turns[_game.curr_turn].state == TurnState.guessing,
+            "Turn not in guessing state"
+        );
+
+        require(
+            getCurrBreaker(_game) == msg.sender,
+            "Not your guessing turn"
+        );
+
+        // Get turn and increase guess amount
+        Turn storage turn = _game.turns[_game.curr_turn];
+        turn.curr_guess += 1;
+        Guess storage guess = turn.guesses[turn.curr_guess];
+
+        for(uint i = 0; i < _game.code_len; i++) {
+            guess.guess[i+1] = _guess[i];
+        }
+    }
 }

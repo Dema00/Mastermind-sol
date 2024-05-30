@@ -125,7 +125,7 @@ contract Mastermind {
 
         //If sender is not the designated opponent revert
         LobbyFunction.addOpponent(game, msg.sender);
- 
+
         // Emit game readiness signal, useful for the client, will be used with web3.js or python
         emit PlayersReady(game.uuid, block.timestamp);
     }
@@ -198,10 +198,14 @@ contract Mastermind {
      */
     function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public {
         Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
         GameFunction.setTurnCode(game,_code_hash);
     }
 
-    function guess(bytes32 _game_id, bytes32 _payload) public {
+    function guess(bytes32 _game_id, bytes1[] memory _guess) public {
+        Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
+        GameFunction.addGuess(game, _guess);
         //TODO
     }
 }
