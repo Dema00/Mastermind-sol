@@ -46,6 +46,8 @@ contract Mastermind {
      */
     event GameStart( bytes32 indexed _game_id, bool _creator_is_first_breaker);
 
+    event TurnOver( bytes32 indexed _game_id, uint _turn_num);
+
 
     //-----------------
     //     ERRORS
@@ -104,6 +106,8 @@ contract Mastermind {
         game.code_symbols_amt = _code_symbols_amt;
 
         // Return game_id
+        console.log("Game ID: ");
+        console.logBytes32(game_id);
         return game_id;
     }
 
@@ -202,10 +206,74 @@ contract Mastermind {
         GameFunction.setTurnCode(game,_code_hash);
     }
 
-    function guess(bytes32 _game_id, bytes1[] memory _guess) public {
+    /**
+     * @dev Add a Guess to a Game Turn
+     * @param _game_id Id of the game
+     * @param _guess guess code
+     */    
+    function guess(bytes32 _game_id, bytes1[] calldata _guess) public {
+        //TODO Add length check to all arrays
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
         GameFunction.addGuess(game, _guess);
+
+        // Update turn state
+        GameFunction.setTurnState(game, TurnState.giving_feedback);
         //TODO
+    }
+
+    /**
+     * @dev Add feedback to a Guess of a Game Turn
+     * @param _game_id Id of the game
+     * @param _feedback Feedback value
+     */
+    function giveFeedback(
+        bytes32 _game_id,
+        uint[2] calldata _feedback
+    ) public {
+        //TODO Add length check to all arrays
+        Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
+        GameFunction.addFeedback(game, _feedback);
+
+        Turn storage turn = game.turns[game.curr_turn];
+        
+        // If guess limit reached transition to code reveal state else go back to guessing
+        if (turn.curr_guess >= game.guess_amt) {
+            GameFunction.setTurnState(game, TurnState.revealing_code);
+
+        } else {
+            GameFunction.setTurnState(game, TurnState.guessing);
+        }
+    }
+
+    /**
+     * @dev Set the solution code, check the correctness of it
+     * @param _game_id Id of the game
+     * @param _code_sol Solution code
+     * @param _salt Solution salt
+     */
+    function revealCode(
+        bytes32 _game_id,
+        bytes1[] calldata _code_sol,
+        bytes4 _salt
+    ) public {
+        //TODO Add length check to all arrays
+        Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
+
+        // If the revealed code or salt is wrong instant game over
+        // CodeMaker loses its stake forever
+        // else finish turn
+        if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
+            GameFunction.setTurnState(game, TurnState.lock);
+            game.state = GameState.completed;
+            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+        } else {
+            GameFunction.setSolution(game, _code_sol, _salt);
+            emit TurnOver(game.uuid, game.curr_turn);
+            GameFunction.setTurnState(game, TurnState.turn_over);
+            // call waitDisputeTimer();
+        }
     }
 }
