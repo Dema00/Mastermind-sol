@@ -8,7 +8,7 @@ library MastermindHelper {
     /**
      * @dev Terrible and ugly function to pop the first element of an array
      */
-    function pop_first(bytes32[] storage arr) public {
+    function pop_first(bytes32[] storage arr) internal {
         require(arr.length > 0, "Array is empty");
 
         // Shift elements to the left

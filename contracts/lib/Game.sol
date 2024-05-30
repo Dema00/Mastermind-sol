@@ -72,7 +72,8 @@ library GameFunction {
         turn.code_hash = _code_hash;
     }
 
-    function getCurrBreaker(Game storage _game) internal returns (address) {
+    function getCurrBreaker(Game storage _game)
+    internal view returns (address) {
         address[2] memory players = 
         _game.creator_is_first_breaker ? 
         [_game.creator, _game.opponent] : [_game.opponent, _game.creator];
