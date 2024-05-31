@@ -4,6 +4,7 @@ import "@nomicfoundation/hardhat-ignition-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import 'solidity-coverage';
 import 'hardhat-gas-reporter';
+import '@nomiclabs/hardhat-ethers';
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -22,7 +23,7 @@ const config: HardhatUserConfig = {
     noColors: true,
     currency: "EUR",
     outputFile: "hardhat-gas-report.txt",
-    // gasPrice: 21,  // Specify gas price in gwei if needed (optional)
+    gasPrice: 15,  // Specify gas price in gwei if needed (optional)
   },
   paths: {
     sources: "./contracts",

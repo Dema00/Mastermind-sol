@@ -94,3 +94,8 @@ launch the deployment script `npx hardhat run scripts/deploy.js --network <net-n
 _____________________________________________________________  
 {The command you should use depends on what you want to do. If you want to deploy your contracts, use `npx hardhat deploy`. If you want to run a specific script, use `npx hardhat run <script>` or (deploy/ignite) `npx hardhat ignition deploy <ignition>`.}  
 Can manually interact with the contract using `npx hardat console --network <net-name>`.
+
+____________________________________
+NON so dove metterlo ma 
+`npm install --save-dev @nomiclabs/hardhat-ethers ethers`
+serve molto
