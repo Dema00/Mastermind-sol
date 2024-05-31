@@ -225,8 +225,13 @@ contract Mastermind {
     ) public {
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
-        GameFunction.addFeedback(game, _feedback);
-        StateMachine.nextTurnState(game);
+        //If you submit different feedback for the same guess you lose since you cheated
+        if (GameFunction.addFeedback(game, _feedback)) {
+            StateMachine.nextTurnState(game);
+        } else {
+            GameFunction.forceGameOver(game);
+            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+        }
     }
 
     /**
@@ -247,9 +252,7 @@ contract Mastermind {
         // CodeMaker loses its stake forever
         // else finish turn
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
-            StateMachine.nextState(game);
-            StateMachine.nextTurnState(game);
-            GameFunction.setTurnLockTime(game, 0);
+            GameFunction.forceGameOver(game);
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);

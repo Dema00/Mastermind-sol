@@ -116,6 +116,7 @@ struct Turn {
     bytes4 salt;
     bytes32 code_hash;
     bytes16 guess;
+    uint8 curr_cc;
     uint16 curr_guess;
     TurnState state;
     uint lock_time;
@@ -162,6 +163,10 @@ library StateMachine {
     function nextTurnState(Game storage _game) internal {
         if(_game.state == GameState.completed) {
             _game.turn.state = TurnState.turn_over;
+        }
+
+        if(_game.turn.curr_cc == _game.code_len) {
+            _game.turn.state = TurnState.revealing_code;
         }
 
         if(_game.turn.state == TurnState.defining_secret) {

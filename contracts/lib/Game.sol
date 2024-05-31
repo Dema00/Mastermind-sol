@@ -27,8 +27,6 @@ library GameFunction {
         }
 
         _game.state = GameState.playing;
-
-        nextTurn(_game);
     }
 
     /**
@@ -46,6 +44,11 @@ library GameFunction {
             "Cannot increment turns further"
         );
 
+        require(
+            block.timestamp > _game.turn.lock_time,
+            "Wait for last turn to lock"
+        );
+
         if (_game.curr_turn != 0) delete(_game.turn);
         _game.curr_turn += 1;
         _game.turn.state = TurnState.defining_secret;
@@ -61,6 +64,14 @@ library GameFunction {
             _game.state == GameState.playing,
             "Wrong game state"
         );
+
+        require(
+            _game.turn.state == TurnState.turn_over ||
+            _game.curr_turn == 0,
+            "Wrong turn state"
+        );
+
+        nextTurn(_game);
 
         require(
             _game.turn.state == TurnState.defining_secret,
@@ -137,7 +148,7 @@ library GameFunction {
     function addFeedback(
         Game storage _game,
         bytes1 _feedback
-    ) internal {
+    ) internal returns (bool) {
         require(
             _game.state == GameState.playing,
             "Cannot advance game not in playing state"
@@ -154,13 +165,17 @@ library GameFunction {
         );
 
         if (_game.turn.feedback[_game.turn.guess] != 0) {
-
+            return false;
         }
         _game.turn.feedback[_game.turn.guess] = _feedback;
+        _game.turn.curr_cc = uint8(_feedback & 0xf0);
+        return true;
     }
 
-    function gameOver(Game storage _game, bool _is_curr_breaker_winner) internal {
-
+    function forceGameOver(Game storage _game) internal {
+        StateMachine.nextState(_game);
+        StateMachine.nextTurnState(_game);
+        GameFunction.setTurnLockTime(_game, 0);
     }
 
     /**
