@@ -260,9 +260,9 @@ contract Mastermind {
         // CodeMaker loses its stake forever
         // else finish turn
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
-            GameFunction.setTurnState(game, TurnState.turn_over);
-            GameFunction.setTurnLockTime(game, 0);
             StateMachine.nextState(game);
+            StateMachine.nextTurnState(game);
+            GameFunction.setTurnLockTime(game, 0);
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);

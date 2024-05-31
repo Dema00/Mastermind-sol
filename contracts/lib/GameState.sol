@@ -93,9 +93,10 @@ enum TurnState {
     turn_over
 }
 
+
 /**
  * @dev Representation of a Mastermind turn 
- */
+
 struct Turn {
     mapping(uint => Guess) guesses;
     uint curr_guess;
@@ -110,18 +111,20 @@ struct Turn {
     // Set at the end of the turn
     bytes4 salt;
     mapping(uint => bytes1) code_solution;
+}*/
+
+struct Turn {
+    bytes2 root_node;
+    bytes4 salt;
+    bytes16 code_hash;
+    uint16 curr_guess;
+    TurnState state;
+    uint lock_time;
+    mapping(bytes2 => bytes8) nodes;
 }
 
-/**
- * @dev Representation of a Mastermind guess:
- *      -   guess should be an array of code_len
- *      -   uint contains the CC and the NC values
- */
 struct Guess {
-    mapping(uint => bytes1) guess;
-    // idx 0 -> CC (pos, symbol)
-    // idx 1 -> NC (!pos, symbol)
-    uint[2] response;
+    bytes1 a;
 }
 
 library StateMachine {
@@ -162,6 +165,10 @@ library StateMachine {
     }
 
     function nextTurnState(Game storage _game) internal {
+        if(_game.state == GameState.completed) {
+            _game.turn.state = TurnState.turn_over;
+        }
+
         if(_game.turn.state == TurnState.defining_secret) {
             _game.turn.state = TurnState.guessing;
         }
