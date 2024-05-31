@@ -46,8 +46,8 @@ library GameFunction {
             "Cannot increment turns further"
         );
 
+        if (_game.curr_turn != 0) delete(_game.turn);
         _game.curr_turn += 1;
-        delete(_game.turn);
         _game.turn.state = TurnState.defining_secret;
     }
 
@@ -75,17 +75,28 @@ library GameFunction {
      *      which one gets retrieved
      * @param _game The game from which the info is derived
      * @param _mode The retrieval mode:
-     *                  -true:  get breaker
-     *                  -false: get maker
+     *                  -true:  get current breaker
+     *                  -false: get current maker
      */
     function getCurrBreaker(
         Game storage _game,
         bool _mode
     ) internal view returns (address) {
         address[2] memory players = 
-        (_game.creator_is_first_breaker && _mode) ? 
-        [_game.creator, _game.opponent] : [_game.opponent, _game.creator];
+        checkMode(_game.creator_is_first_breaker, _mode) ? 
+        [_game.opponent, _game.creator] : [_game.creator,_game.opponent];
         return players[_game.curr_turn % 2];
+    }
+
+    function checkMode(bool a, bool b) public pure returns (bool) {
+        // Implementing the custom truth table
+        if (a && b) return true;  // T T = T
+        if (a && !b) return false; // T F = F
+        if (!a && b) return true; // F T = T
+        if (!a && !b) return false; // F F = F
+        
+        // Default return statement to satisfy Solidity function signature
+        return false;
     }
     
     /**
@@ -142,7 +153,14 @@ library GameFunction {
             "Not your feedback turn"
         );
 
+        if (_game.turn.feedback[_game.turn.guess] != 0) {
+
+        }
         _game.turn.feedback[_game.turn.guess] = _feedback;
+    }
+
+    function gameOver(Game storage _game, bool _is_curr_breaker_winner) internal {
+
     }
 
     /**
