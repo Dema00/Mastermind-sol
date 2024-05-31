@@ -271,7 +271,7 @@ contract Mastermind {
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
             GameFunction.setTurnState(game, TurnState.turn_over);
             GameFunction.setTurnLockTime(game, 0);
-            game.state = GameState.completed;
+            StateMachine.nextState(game);
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);

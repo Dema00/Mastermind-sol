@@ -12,7 +12,7 @@ pragma solidity ^0.8.24;
  *      -   completed: game over
  *                                                         
  * ┌────────────────────┐       ┌──────────────────┐      
- * │ searching_opponent ├────┬─►│ waiting_opponent │      
+ * │ searching_opponent ├────┐  │ waiting_opponent │      
  * └────────────────────┘    │  └──────┬───────────┘      
  *                           │         │                  
  *                           ▼         ▼                  
@@ -122,4 +122,42 @@ struct Guess {
     // idx 0 -> CC (pos, symbol)
     // idx 1 -> NC (!pos, symbol)
     uint[2] response;
+}
+
+library StateMachine {
+    function nextState(Game storage _game) internal {
+        if(_game.state == GameState.searching_opponent) {
+            _game.state = GameState.waiting_stake;
+        }
+
+        if(_game.state == GameState.waiting_opponent) {
+            _game.state = GameState.waiting_stake;
+        }
+
+        if(_game.state == GameState.waiting_stake) {
+            _game.state = GameState.confirming_stake;
+        }
+
+        if(
+            _game.state == GameState.confirming_stake &&
+            _game.stake == 0
+        ) {
+            _game.state = GameState.waiting_stake;
+        }
+
+        if(
+            _game.state == GameState.confirming_stake &&
+            _game.stake != 0
+        ) {
+            _game.state = GameState.ready;
+        }
+
+        if(_game.state == GameState.ready) {
+            _game.state = GameState.playing;
+        }
+
+        if(_game.state == GameState.playing) {
+            _game.state == GameState.completed;
+        }
+    }
 }

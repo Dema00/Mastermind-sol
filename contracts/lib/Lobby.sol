@@ -44,7 +44,7 @@ library LobbyFunction {
             _game.opponent = _opponent;
         }
 
-        _game.state = GameState.waiting_stake;
+        StateMachine.nextState(_game);
     }
 
     /**
@@ -89,12 +89,11 @@ library LobbyFunction {
         // If you are the opponent the games needs to be in confirming_stake
         if (_game.state == GameState.waiting_stake) {
             _game.stake = msg.value;
-            _game.state = GameState.confirming_stake;
         } else if (_game.state == GameState.confirming_stake &&
-            _game.stake == msg.value) {
-            _game.state = GameState.ready;
-        } else if (_game.state == GameState.confirming_stake && _game.stake != msg.value) {
-            _game.state = GameState.waiting_stake;
+            _game.stake != msg.value) {
+            delete(_game.stake);
         }
+
+        StateMachine.nextState(_game);
     }
 }
