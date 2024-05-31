@@ -21,6 +21,9 @@ contract Mastermind {
     // Pool of available open games
     bytes32[] searching_games;
 
+    // Dispute time
+    uint t_disp = 60; // 5 Min lock time
+
     //-----------------
     //     EVENTS
     //-----------------
@@ -266,14 +269,15 @@ contract Mastermind {
         // CodeMaker loses its stake forever
         // else finish turn
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
-            GameFunction.setTurnState(game, TurnState.lock);
+            GameFunction.setTurnState(game, TurnState.turn_over);
+            GameFunction.setTurnLockTime(game, 0);
             game.state = GameState.completed;
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
             emit TurnOver(game.uuid, game.curr_turn);
             GameFunction.setTurnState(game, TurnState.turn_over);
-            // call waitDisputeTimer();
+            GameFunction.setTurnLockTime(game, t_disp);
         }
     }
 }
