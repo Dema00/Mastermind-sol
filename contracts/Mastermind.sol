@@ -90,7 +90,6 @@ contract Mastermind {
 
         // Set players
         game.creator = msg.sender;
-        game.uuid = game_id;
 
         if (_opponent == address(0)) {
             game.state = GameState.searching_opponent;
@@ -134,7 +133,7 @@ contract Mastermind {
         LobbyFunction.addOpponent(game, msg.sender);
 
         // Emit game readiness signal, useful for the client, will be used with web3.js or python
-        emit PlayersReady(game.uuid, block.timestamp);
+        emit PlayersReady(_game_id, block.timestamp);
     }
 
     /**
@@ -152,8 +151,9 @@ contract Mastermind {
         LobbyFunction.manageStake(game);
 
         if (game.state == GameState.ready) {
-            emit StakeSuccessful(game.uuid, msg.value);
-            beginGame(game);
+            emit StakeSuccessful(_game_id, msg.value);
+            GameFunction.beginGame(game);
+            emit GameStart(_game_id, game.creator_is_first_breaker);
         } else if (game.state == GameState.waiting_stake) {
             pending_return[game.creator] += game.stake;
             pending_return[game.opponent] += msg.value;
@@ -190,15 +190,6 @@ contract Mastermind {
     //------------------
 
     /**
-     * @dev Begin Game
-     * @param _game Game to begin
-     */
-    function beginGame(Game storage _game) private {
-        GameFunction.beginGame(_game);
-        emit GameStart(_game.uuid, _game.creator_is_first_breaker);
-    }
-
-    /**
      * @dev Set secret code hash
      * @param _game_id id of the game
      * @param _code_hash hash of the secret code
@@ -215,14 +206,12 @@ contract Mastermind {
      * @param _guess guess code
      */    
     function guess(bytes32 _game_id, bytes16 _guess) public {
-        //TODO Add length check to all arrays
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
         GameFunction.addGuess(game, _guess);
 
         // Update turn state
         StateMachine.nextTurnState(game);
-        //TODO
     }
 
     /**
@@ -234,7 +223,6 @@ contract Mastermind {
         bytes32 _game_id,
         bytes1 _feedback
     ) public {
-        //TODO Add length check to all arrays
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
         GameFunction.addFeedback(game, _feedback);
@@ -252,7 +240,6 @@ contract Mastermind {
         bytes16 _code_sol,
         bytes4 _salt
     ) public {
-        //TODO Add length check to all arrays
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
 
@@ -266,7 +253,7 @@ contract Mastermind {
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
-            emit TurnOver(game.uuid, game.curr_turn);
+            emit TurnOver(_game_id, game.curr_turn);
             StateMachine.nextTurnState(game);
             GameFunction.setTurnLockTime(game, t_disp);
         }

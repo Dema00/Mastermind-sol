@@ -20,7 +20,7 @@ library LobbyFunction {
         
         // Check existence
         require(
-            _game.uuid != 0,
+            _game.creator != address(0),
             "[Internal Error] Supplied Game does not exist"
         );
         // Check identity
@@ -57,7 +57,7 @@ library LobbyFunction {
 
         // Check existence
         require(
-            _game.uuid != 0,
+            _game.creator != address(0),
             "[Internal Error] Supplied Game does not exist"
         );
         // Check game state

@@ -41,7 +41,6 @@ enum GameState {
  */
 struct Game {
     // General game info
-    bytes32 uuid; 
     address creator;
     address opponent;
 
