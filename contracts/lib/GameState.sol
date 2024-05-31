@@ -57,7 +57,7 @@ struct Game {
 
     // Current game state
     GameState state;
-    mapping(uint => Turn) turns;
+    Turn turn;
     uint curr_turn;
         // The player that acts as the CodeBreaker during the first round
     bool creator_is_first_breaker;
@@ -158,6 +158,34 @@ library StateMachine {
 
         if(_game.state == GameState.playing) {
             _game.state == GameState.completed;
+        }
+    }
+
+    function nextTurnState(Game storage _game) internal {
+        if(_game.turn.state == TurnState.defining_secret) {
+            _game.turn.state = TurnState.guessing;
+        }
+
+        if(_game.turn.state == TurnState.guessing) {
+            _game.turn.state = TurnState.giving_feedback;
+        }
+
+        if(
+            _game.turn.state == TurnState.giving_feedback &&
+            _game.turn.curr_guess >= _game.guess_amt
+        ) {
+            _game.turn.state = TurnState.revealing_code;
+        }
+
+        if(
+            _game.turn.state == TurnState.giving_feedback &&
+            _game.turn.curr_guess < _game.guess_amt
+        ) {
+            _game.turn.state = TurnState.guessing;
+        }
+
+        if(_game.turn.state == TurnState.revealing_code) {
+            _game.turn.state == TurnState.turn_over;
         }
     }
 }

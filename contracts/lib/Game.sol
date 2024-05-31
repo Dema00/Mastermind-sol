@@ -47,8 +47,8 @@ library GameFunction {
         );
 
         _game.curr_turn += 1;
-        Turn storage new_turn = _game.turns[_game.curr_turn];
-        new_turn.state = TurnState.defining_secret;
+        delete(_game.turn);
+        _game.turn.state = TurnState.defining_secret;
     }
 
     /**
@@ -62,14 +62,12 @@ library GameFunction {
             "Wrong game state"
         );
 
-        Turn storage turn = _game.turns[_game.curr_turn];
-
         require(
-            turn.state == TurnState.defining_secret,
+            _game.turn.state == TurnState.defining_secret,
             "Wrong turn state"
         );
 
-        turn.code_hash = _code_hash;
+        _game.turn.code_hash = _code_hash;
     }
 
     /**
@@ -106,7 +104,7 @@ library GameFunction {
         );
 
         require(
-            _game.turns[_game.curr_turn].state == TurnState.guessing,
+            _game.turn.state == TurnState.guessing,
             "Turn not in guessing state"
         );
 
@@ -116,9 +114,8 @@ library GameFunction {
         );
 
         // Get turn and increase guess amount
-        Turn storage turn = _game.turns[_game.curr_turn];
-        turn.curr_guess += 1;
-        Guess storage guess = turn.guesses[turn.curr_guess];
+        _game.turn.curr_guess += 1;
+        Guess storage guess = _game.turn.guesses[_game.turn.curr_guess];
 
         // Set guess content in Guess
         for(uint i = 0; i < _game.code_len; i++) {
@@ -141,7 +138,7 @@ library GameFunction {
         );
 
         require(
-            _game.turns[_game.curr_turn].state == TurnState.giving_feedback,
+            _game.turn.state == TurnState.giving_feedback,
             "Turn not in giving_feedback state"
         );
 
@@ -151,8 +148,7 @@ library GameFunction {
         );
 
         // Get curr turn and curr guess
-        Turn storage turn = _game.turns[_game.curr_turn];
-        Guess storage guess = turn.guesses[turn.curr_guess];
+        Guess storage guess = _game.turn.guesses[_game.turn.curr_guess];
 
         guess.response = _feedback;
     }
@@ -175,11 +171,9 @@ library GameFunction {
             "Cannot advance game not in playing state"
         );
 
-        Turn storage turn = _game.turns[_game.curr_turn];
-
         //Check turn state
         require(
-            turn.state == TurnState.revealing_code,
+            _game.turn.state == TurnState.revealing_code,
             "Turn not in giving_feedback state"
         );
 
@@ -191,9 +185,9 @@ library GameFunction {
 
         // Set code_solution content in Turn
         for(uint i = 0; i < _game.code_len; i++) {
-            turn.code_solution[i+1] = _code[i];
+            _game.turn.code_solution[i+1] = _code[i];
         }
-        turn.salt = _salt;
+        _game.turn.salt = _salt;
     }
 
     /**
@@ -207,15 +201,14 @@ library GameFunction {
         bytes1[] calldata _code,
         bytes4 _salt
     ) internal view returns (bool) {
-        Turn storage turn = _game.turns[_game.curr_turn];
-        return turn.code_hash == keccak256(abi.encodePacked(_code,_salt));
+        return _game.turn.code_hash == keccak256(abi.encodePacked(_code,_salt));
     }
 
     function setTurnState(Game storage _game, TurnState _state) internal {
-        _game.turns[_game.curr_turn].state = _state;
+        _game.turn.state = _state;
     }
 
     function setTurnLockTime(Game storage _game, uint _t_disp) internal {
-        _game.turns[_game.curr_turn].lock_time = block.timestamp + _t_disp;
+        _game.turn.lock_time = block.timestamp + _t_disp;
     }
 }

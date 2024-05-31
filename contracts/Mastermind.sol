@@ -238,16 +238,7 @@ contract Mastermind {
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
         GameFunction.addFeedback(game, _feedback);
-
-        Turn storage turn = game.turns[game.curr_turn];
-        
-        // If guess limit reached transition to code reveal state else go back to guessing
-        if (turn.curr_guess >= game.guess_amt) {
-            GameFunction.setTurnState(game, TurnState.revealing_code);
-
-        } else {
-            GameFunction.setTurnState(game, TurnState.guessing);
-        }
+        StateMachine.nextTurnState(game);
     }
 
     /**
@@ -276,7 +267,7 @@ contract Mastermind {
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
             emit TurnOver(game.uuid, game.curr_turn);
-            GameFunction.setTurnState(game, TurnState.turn_over);
+            StateMachine.nextTurnState(game);
             GameFunction.setTurnLockTime(game, t_disp);
         }
     }
