@@ -114,17 +114,13 @@ struct Turn {
 }*/
 
 struct Turn {
-    bytes2 root_node;
     bytes4 salt;
-    bytes16 code_hash;
+    bytes32 code_hash;
+    bytes16 guess;
     uint16 curr_guess;
     TurnState state;
     uint lock_time;
-    mapping(bytes2 => bytes8) nodes;
-}
-
-struct Guess {
-    bytes1 a;
+    mapping(bytes16 => bytes1) feedback;
 }
 
 library StateMachine {

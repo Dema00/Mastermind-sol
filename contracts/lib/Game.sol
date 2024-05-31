@@ -96,7 +96,7 @@ library GameFunction {
      */
     function addGuess(
         Game storage _game,
-        bytes1[] memory _guess
+        bytes16 _guess
     ) internal {
         require(
             _game.state == GameState.playing,
@@ -115,12 +115,7 @@ library GameFunction {
 
         // Get turn and increase guess amount
         _game.turn.curr_guess += 1;
-        Guess storage guess = _game.turn.guesses[_game.turn.curr_guess];
-
-        // Set guess content in Guess
-        for(uint i = 0; i < _game.code_len; i++) {
-            guess.guess[i+1] = _guess[i];
-        }
+        _game.turn.guess = _guess;
     }
 
     /**
@@ -130,7 +125,7 @@ library GameFunction {
      */
     function addFeedback(
         Game storage _game,
-        uint[2] calldata _feedback
+        bytes1 _feedback
     ) internal {
         require(
             _game.state == GameState.playing,
@@ -147,10 +142,7 @@ library GameFunction {
             "Not your feedback turn"
         );
 
-        // Get curr turn and curr guess
-        Guess storage guess = _game.turn.guesses[_game.turn.curr_guess];
-
-        guess.response = _feedback;
+        _game.turn.feedback[_game.turn.guess] = _feedback;
     }
 
     /**
@@ -161,7 +153,7 @@ library GameFunction {
      */
     function setSolution(
         Game storage _game,
-        bytes1[] calldata _code,
+        bytes16 _code,
         bytes4 _salt
     ) internal {
 
@@ -184,9 +176,7 @@ library GameFunction {
         );
 
         // Set code_solution content in Turn
-        for(uint i = 0; i < _game.code_len; i++) {
-            _game.turn.code_solution[i+1] = _code[i];
-        }
+        _game.turn.guess = _code;
         _game.turn.salt = _salt;
     }
 
@@ -198,7 +188,7 @@ library GameFunction {
      */
     function isSolCorrect(
         Game storage _game,
-        bytes1[] calldata _code,
+        bytes16 _code,
         bytes4 _salt
     ) internal view returns (bool) {
         return _game.turn.code_hash == keccak256(abi.encodePacked(_code,_salt));

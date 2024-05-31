@@ -214,14 +214,14 @@ contract Mastermind {
      * @param _game_id Id of the game
      * @param _guess guess code
      */    
-    function guess(bytes32 _game_id, bytes1[] calldata _guess) public {
+    function guess(bytes32 _game_id, bytes16 _guess) public {
         //TODO Add length check to all arrays
         Game storage game = games[_game_id];
         MastermindHelper.validateSenderIdentity(game);
         GameFunction.addGuess(game, _guess);
 
         // Update turn state
-        GameFunction.setTurnState(game, TurnState.giving_feedback);
+        StateMachine.nextTurnState(game);
         //TODO
     }
 
@@ -232,7 +232,7 @@ contract Mastermind {
      */
     function giveFeedback(
         bytes32 _game_id,
-        uint[2] calldata _feedback
+        bytes1 _feedback
     ) public {
         //TODO Add length check to all arrays
         Game storage game = games[_game_id];
@@ -249,7 +249,7 @@ contract Mastermind {
      */
     function revealCode(
         bytes32 _game_id,
-        bytes1[] calldata _code_sol,
+        bytes16 _code_sol,
         bytes4 _salt
     ) public {
         //TODO Add length check to all arrays
