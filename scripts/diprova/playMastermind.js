@@ -88,6 +88,11 @@ const txRet = await contract.createGame(
 // get the return value directly, because state-changing
 // transactions don't return values directly in Ethereum
 // Use callStatic to get the return value
+
+// TUTTAVIA
+// When you use callStatic, the createGame function is simulated
+// but not executed, meaning no state changes occur. Hence, no
+// game ID is actually created on the blockchain.
 const returnValue = await contract.callStatic.createGame("0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199", 4, 6, 10);
 console.log("Return Value:", returnValue);
 
@@ -96,10 +101,14 @@ const accountsList = await ethers.getSigners();
 const desiredSigner = accountsList[19]; // Change the index to select a different account
 const contractWithNewSigner = contract.connect(desiredSigner);
 const joinTx = await contractWithNewSigner.joinGame(returnValue);
+// Wait for the transaction to be mined
 await joinTx.wait();
 console.log("Joined Game ID:", returnValue, "from address:", desiredSigner.address);
 
 
+// To retrieve the game ID, you need to wait for the transaction
+// to be mined and then read the return value from the
+// transaction receipt. Here’s how you can do it:
 const receipt = await joinTx.wait();
 // Get the raw return data from the receipt
 const returnVs = receipt.logs[0].data; // Adjust index based on the actual log position

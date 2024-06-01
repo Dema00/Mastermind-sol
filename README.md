@@ -30,6 +30,14 @@ Set the project to support Typescript with
 npm install --save-dev ts-node typescript
 npm install --save-dev chai@4 @types/node @types/mocha @types/chai@4
 ```
+We will also need
+```
+npm install --save-dev @nomiclabs/hardhat-ethers ethers
+
+# Add the following line to hardhat.config.ts file
+import '@nomiclabs/hardhat-ethers';
+```
+use `--force` for the installatoin if there are problems.
 # Hardhat Project
 Every time we run Hardhat from CLI we are running a Task (like `npx hardhat compile`, `npx hardhat deploy`, `npx hardhat test`). Tasks can call other tasks and generate complex workflows.  
 We are going to use a Hardhat on local network, so that we avoid pay for the usage of public blockchain network or testnet. Another advantage is the reproducibility of the code due to same execution condition like same private kays and users addresses (reproducibility ⮕ testable).  
@@ -81,21 +89,18 @@ Next, you need to require the plugin in your Hardhat configuration file. Open *h
 import 'solidity-coverage';
 import 'hardhat-gas-reporter';
 ```
+In *hardhat.config.ts*  we can also setup some configuration for gasReporter, defaultNetwork, paths, solidity compiler.  
 Now you can run the coverage analysis by executing the following command `npx hardhat coverage` or ,with the gas reporter configured, you can now run your tests as `npx hardhat test`, and it will automatically generate a gas usage report.  
-Using `import "hardhat/console.sol";` in the smart contract let us consol.log from our solidity code (can check launching the test).  
+Using `import "hardhat/console.sol";` in the smart contract let us console.log from our solidity code (can check launching the test).  
 Both commands can be run without spin up any chain server, this because Hardhat has his built-in block chain feature.
 ## Compile, Deploy, Use
 Compile using `npx hardhat compile` the files in **/contracts**, this generate two files per compiled contract: an artifact(.json) and a debug file(.dbg.json). Can be used `npx hardhat clean` to clear the cache and to delete the artifact.  
 Deployments are defined through Ignition Modules, these are abstraction to describe a deployment.   
 Before launch the ignition script `npx hardhat ignition deploy ./ignition/modules/<Contract-name>.ts --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.
 _____________________________________________________________  
-DEPLOING ALSO WORKS AS  
-launch the deployment script `npx hardhat run scripts/deploy.js --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.  
+**Point Out**  
+We could also launch a deployment script `npx hardhat run scripts/deploy.js --network <net-name>` make sure your local node is running. If you're using localhost Hardhat Network, you can start it by running `npx hardhat node`.  
+**{** The command you should use depends on what you want to do. If you want to deploy your contracts, use `npx hardhat deploy`. If you want to run a specific script, use `npx hardhat run <script>` or `npx hardhat ignition deploy <ignition>`. `npx hardhat ignition` facilitates the deployment of complex Ethereum applications, especially useful for larger projects where managing the deployment of multiple contracts and their interdependencies can become challenging. **}**  
 _____________________________________________________________  
-{The command you should use depends on what you want to do. If you want to deploy your contracts, use `npx hardhat deploy`. If you want to run a specific script, use `npx hardhat run <script>` or (deploy/ignite) `npx hardhat ignition deploy <ignition>`.}  
-Can manually interact with the contract using `npx hardat console --network <net-name>`.
-
-____________________________________
-NON so dove metterlo ma 
-`npm install --save-dev @nomiclabs/hardhat-ethers ethers`
-serve molto
+Can manually interact with the contract using `npx hardat console --network <net-name>`.  
+From the console we can directly write commands or load script.js files using `.load <path-file>` (base folder should be the one from console has been launched). Command `.save` let us save/dump all evaluated commands in REPL/console session to a local file.  

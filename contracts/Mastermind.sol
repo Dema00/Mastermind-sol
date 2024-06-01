@@ -29,6 +29,12 @@ contract Mastermind {
     //-----------------
 
     /**
+     * @dev Log a successful game instance
+     * @param _game_id Id of the game associated with the match
+     */
+    event GameReady(bytes32 _game_id);
+
+    /**
      * @dev Log a successful matchmaking instance
      * @param _game_id Id of the game associated with the match
      * @param _matchmaking_time Timestamp of succesfull matchmaking
@@ -112,6 +118,7 @@ contract Mastermind {
         // Return game_id
         console.log("Game ID: ");
         console.logBytes32(game_id);
+        emit GameReady(game_id);
         return game_id;
     }
 
