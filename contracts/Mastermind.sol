@@ -22,7 +22,10 @@ contract Mastermind {
     bytes32[] searching_games;
 
     // Dispute time
-    uint t_disp = 60; // 5 Min lock time
+    uint t_disp = 60; 
+
+    // AFK time
+    uint t_afk = 360;
 
     //-----------------
     //     EVENTS
@@ -237,8 +240,7 @@ contract Mastermind {
         if (GameFunction.addFeedback(game, _feedback)) {
             StateMachine.nextTurnState(game);
         } else {
-            GameFunction.forceGameOver(game);
-            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         }
     }
 
@@ -260,9 +262,7 @@ contract Mastermind {
         // CodeMaker loses its stake forever
         // else finish turn
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
-            GameFunction.forceGameOver(game);
-            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
-            delete(games[_game_id]);
+            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
             emit TurnOver(_game_id, game.curr_turn);
@@ -280,11 +280,25 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
+
+        address accused;
+        if(msg.sender == game.creator) {
+            accused = game.opponent;
+        } else {
+            accused = game.creator;
+        }
+
+        if (game.afk_timer[accused] != 0 &&
+            game.afk_timer[accused] > block.timestamp ) {
+            
+            GameFunction.forceGameOver(game,msg.sender);
+        }
+        
         require(
             block.timestamp > game.turn.lock_time,
             "The reward cannot be claimed yet"
         );
-        MastermindHelper.validateSenderIdentity(game);
         pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
         delete(games[_game_id]);
     }
@@ -301,13 +315,18 @@ contract Mastermind {
         );
 
         if (GameFunction.hasMakerCheated(game,_guess)) {
-            GameFunction.forceGameOver(game);
-            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         } else {
-            GameFunction.forceGameOver(game);
-            pending_return[GameFunction.getCurrBreaker(game, false)] += (game.stake * 2);
+            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, false));
         }
 
         delete(games[_game_id]);
+    }
+
+    function accuseAFK(
+        bytes32 _game_id
+    ) public {
+        Game storage game = games[_game_id];
+        MastermindHelper.accuseAFK(game,t_afk);
     }
 }

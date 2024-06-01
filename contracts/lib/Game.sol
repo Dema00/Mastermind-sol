@@ -174,10 +174,18 @@ library GameFunction {
         return true;
     }
 
-    function forceGameOver(Game storage _game) internal {
+    function forceGameOver(Game storage _game, address _winner) internal {
         StateMachine.nextState(_game);
         StateMachine.nextTurnState(_game);
         GameFunction.setTurnLockTime(_game, 0);
+
+        if (_winner == _game.creator) {
+            _game.score[_game.creator] = 1;
+            _game.score[_game.opponent] = 0;
+        } else {
+            _game.score[_game.opponent] = 1;
+            _game.score[_game.creator] = 0;
+        }
     }
 
     /**

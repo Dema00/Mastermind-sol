@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./GameState.sol";
+import "./Game.sol";
 
 library MastermindHelper {
     
@@ -34,5 +35,47 @@ library MastermindHelper {
             || _game.creator == msg.sender,
             "Sender not part of game"
         );
+    }
+
+    function accuseAFK(Game storage _game, uint _response_time) internal {
+        address accused;
+
+        require(
+            _game.state != GameState.searching_opponent &&
+            _game.state != GameState.waiting_opponent,
+            "Game has not started"
+        );
+
+        if(_game.state == GameState.waiting_stake) {
+            accused = _game.creator;
+        } else if (_game.state == GameState.confirming_stake) {
+            accused = _game.opponent;
+        }
+
+        require(
+            _game.state == GameState.playing,
+            "Game has not started"
+        );
+
+        if (msg.sender == GameFunction.getCurrBreaker(_game,true)) {
+            require(
+                _game.turn.state == TurnState.defining_secret ||
+                _game.turn.state == TurnState.giving_feedback ||
+                _game.turn.state == TurnState.revealing_code,
+                "Cannot accuse during own phase"
+            );
+
+            accused = GameFunction.getCurrBreaker(_game,false);
+        } else {
+            require(
+                _game.turn.state == TurnState.guessing,
+                "Cannot accuse during own phase"
+            );
+
+            accused = GameFunction.getCurrBreaker(_game,true);
+        }
+
+        require(_game.afk_timer[accused] == 0, "Already accused");
+        _game.afk_timer[accused] = block.timestamp + _response_time;
     }
 }

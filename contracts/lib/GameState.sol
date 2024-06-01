@@ -47,6 +47,9 @@ struct Game {
     // Scores
     mapping(address => uint) score;
 
+    //AFK timestamp
+    mapping(address => uint) afk_timer;
+
     // Static game parameters
     uint guess_amt;
     uint turns_amt;
@@ -128,6 +131,12 @@ struct Turn {
 
 library StateMachine {
     function nextState(Game storage _game) internal {
+        if(_game.state == GameState.playing) {
+            _game.state == GameState.completed;
+        }
+
+        delete _game.afk_timer[msg.sender];
+
         if(_game.state == GameState.searching_opponent) {
             _game.state = GameState.waiting_stake;
         }
@@ -157,16 +166,14 @@ library StateMachine {
         if(_game.state == GameState.ready) {
             _game.state = GameState.playing;
         }
-
-        if(_game.state == GameState.playing) {
-            _game.state == GameState.completed;
-        }
     }
 
     function nextTurnState(Game storage _game) internal {
         if(_game.state == GameState.completed) {
             _game.turn.state = TurnState.turn_over;
         }
+
+        delete _game.afk_timer[msg.sender];
 
         if(_game.turn.curr_cc == _game.code_len) {
             _game.turn.state = TurnState.revealing_code;
