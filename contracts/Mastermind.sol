@@ -139,7 +139,6 @@ contract Mastermind {
     /**
      * @dev Modeled on the example 
      *      https://docs.soliditylang.org/en/latest/solidity-by-example.html#simple-open-auction
-     *      TODO: withdraw function on the example model
      * @param _game_id Id of the game to stake
      */
     function proposeStake(
@@ -259,6 +258,21 @@ contract Mastermind {
             emit TurnOver(_game_id, game.curr_turn);
             StateMachine.nextTurnState(game);
             GameFunction.setTurnLockTime(game, t_disp);
+
+            if (game.curr_turn == game.turns_amt) {
+                StateMachine.nextState(game);
+                //TODO derive winner, give winnings
+                pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
+            }
         }
+    }
+    
+    function claimReward(
+        bytes32 _game_id
+    ) public {
+        Game storage game = games[_game_id];
+        MastermindHelper.validateSenderIdentity(game);
+        pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
+        delete(games[_game_id]);
     }
 }

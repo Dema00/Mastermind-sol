@@ -21,9 +21,9 @@ pragma solidity ^0.8.24;
  * └───┬──────────────┘    └───────────────┘              
  *     │                                                  
  *     ▼                                                  
- * ┌───────┐        ┌─────────┐       ┌───────────┐       
- * │ ready ├───────►│ playing ├──────►│ completed │       
- * └───────┘        └─────────┘       └───────────┘       
+ * ┌───────┐        ┌─────────┐       ┌───────────┐      
+ * │ ready ├───────►│ playing ├──────►│ completed │      
+ * └───────┘        └─────────┘       └───────────┘      
  *                                                        
  */
 enum GameState {
@@ -43,6 +43,9 @@ struct Game {
     // General game info
     address creator;
     address opponent;
+
+    // Scores
+    mapping(address => uint) score;
 
     // Static game parameters
     uint guess_amt;

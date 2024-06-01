@@ -49,6 +49,9 @@ library GameFunction {
             "Wait for last turn to lock"
         );
 
+        _game.score[getCurrBreaker(_game,false)] += _game.turn.curr_guess;
+        if(_game.turn.curr_guess == _game.guess_amt) 
+            _game.score[getCurrBreaker(_game,false)] += _game.bonus;
         if (_game.curr_turn != 0) delete(_game.turn);
         _game.curr_turn += 1;
         _game.turn.state = TurnState.defining_secret;
@@ -114,7 +117,6 @@ library GameFunction {
      * @dev Add a Guess struct to current turn
      * @param _game Game to which the Guess is added
      * @param _guess array of guess symbols 
-     * TODO CHECK ARRAY LEN
      */
     function addGuess(
         Game storage _game,
@@ -233,5 +235,18 @@ library GameFunction {
 
     function setTurnLockTime(Game storage _game, uint _t_disp) internal {
         _game.turn.lock_time = block.timestamp + _t_disp;
+    }
+
+    function getWinner(Game storage _game) internal view returns(address) {
+        //Check game state
+        require(
+            _game.state == GameState.completed,
+            "Cannot get winner while game is not completed"
+        );
+        if (_game.score[_game.creator] > _game.score[_game.opponent]) {
+            return _game.creator;
+        } else {
+            return _game.opponent;
+        }
     }
 }
