@@ -123,7 +123,7 @@ struct Turn {
     uint16 curr_guess;
     TurnState state;
     uint lock_time;
-    mapping(bytes16 => bytes1) feedback;
+    mapping(bytes16 => bytes2) feedback;
 }
 
 library StateMachine {

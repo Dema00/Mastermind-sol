@@ -51,6 +51,8 @@ contract Mastermind {
 
     event TurnOver( bytes32 indexed _game_id, uint _turn_num);
 
+    event GameWinner( bytes32 indexed _game_id, address _winner);
+
 
     //-----------------
     //     ERRORS
@@ -253,6 +255,7 @@ contract Mastermind {
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
             GameFunction.forceGameOver(game);
             pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+            delete(games[_game_id]);
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
             emit TurnOver(_game_id, game.curr_turn);
@@ -261,8 +264,7 @@ contract Mastermind {
 
             if (game.curr_turn == game.turns_amt) {
                 StateMachine.nextState(game);
-                //TODO derive winner, give winnings
-                pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
+                emit GameWinner(_game_id, GameFunction.getWinner(game));
             }
         }
     }
@@ -271,8 +273,34 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
+        require(
+            block.timestamp > game.turn.lock_time,
+            "The reward cannot be claimed yet"
+        );
         MastermindHelper.validateSenderIdentity(game);
         pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
+        delete(games[_game_id]);
+    }
+
+    function dispute(
+        bytes32 _game_id,
+        bytes16 _guess
+    ) public {
+        Game storage game = games[_game_id];
+
+        require(
+            block.timestamp < game.turn.lock_time,
+            "The turn cannot be disputed"
+        );
+
+        if (GameFunction.hasMakerCheated(game,_guess)) {
+            GameFunction.forceGameOver(game);
+            pending_return[GameFunction.getCurrBreaker(game, true)] += (game.stake * 2);
+        } else {
+            GameFunction.forceGameOver(game);
+            pending_return[GameFunction.getCurrBreaker(game, false)] += (game.stake * 2);
+        }
+
         delete(games[_game_id]);
     }
 }

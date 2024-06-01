@@ -149,7 +149,7 @@ library GameFunction {
      */
     function addFeedback(
         Game storage _game,
-        bytes1 _feedback
+        bytes2 _feedback
     ) internal returns (bool) {
         require(
             _game.state == GameState.playing,
@@ -170,7 +170,7 @@ library GameFunction {
             return false;
         }
         _game.turn.feedback[_game.turn.guess] = _feedback;
-        _game.turn.curr_cc = uint8(_feedback & 0xf0);
+        _game.turn.curr_cc = uint8(bytes1(_feedback));
         return true;
     }
 
@@ -248,5 +248,36 @@ library GameFunction {
         } else {
             return _game.opponent;
         }
+    }
+
+    function hasMakerCheated(Game storage _game, bytes16 _guess) internal view returns(bool) {
+        bytes2 feedback = _game.turn.feedback[_guess];
+        uint8 stored_cc = uint8(bytes1(feedback));
+        uint8 stored_nc = uint8(bytes1(feedback >> 8));
+
+        bytes16 sol = _game.turn.guess;
+
+        uint8 cc;
+        uint8 nc;
+
+        bytes16 sol_guess_xor = sol ^ _guess;
+
+        //uint8[16] memory missing;
+
+        uint256 missing;
+
+        for(uint8 i = 0; i < _game.code_len; i++) {
+            if(bytes1(sol_guess_xor >> 8*i) == 0) {
+                cc += 1;
+            } else {
+                missing = missing | uint256(1) << uint8(bytes1(sol << 8*i));
+            }
+        }
+
+        for(uint8 i = 0; i < _game.code_len; i++) {
+            nc += uint8(missing >> uint8(bytes1(sol << 8*i)) & uint256(1));
+        }
+
+        return !((cc == stored_cc) && (nc == stored_nc));
     }
 }
