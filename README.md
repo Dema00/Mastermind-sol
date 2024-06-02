@@ -24,7 +24,22 @@ npm init -y
 npm install --save-dev hardhat
 # To use your local installation of Hardhat, you need to use npx to run it (i.e. npx hardhat init).
 npx hardhat init # we chose second option Typescript, after the current foldet and all Y.
+# You need to install these dependencies to run the sample project:
+npm install --save-dev "hardhat@^2.22.4" "@nomicfoundation/hardhat-toolbox@^5.0.0"
 ```
+You can check for all outdated packages:
+```sh
+npm outdated
+```
+And update them:
+```sh
+npm update
+```
+After updating, you might want to audit the packages again:
+```sh
+npm audit
+```
+This will ensure your dependencies are up to date and secure.  
 Set the project to support Typescript with
 ```sh
 npm install --save-dev ts-node typescript
@@ -37,7 +52,14 @@ npm install --save-dev @nomiclabs/hardhat-ethers ethers
 # Add the following line to hardhat.config.ts file
 import '@nomiclabs/hardhat-ethers';
 ```
-use `--force` for the installatoin if there are problems.
+use `--force` for the installatoin if there are problems.  
+To remove `node_modules` and reinstall dependencies, use:  
+If you encounter errors or strange behavior that might be related to corrupted dependencies, a clean reinstall can help:
+```sh
+rm -rf node_modules
+npm install
+```
+When upgrading major versions of libraries, removing and reinstalling dependencies ensures no outdated dependencies.
 # Hardhat Project
 Every time we run Hardhat from CLI we are running a Task (like `npx hardhat compile`, `npx hardhat deploy`, `npx hardhat test`). Tasks can call other tasks and generate complex workflows.  
 We are going to use a Hardhat on local network, so that we avoid pay for the usage of public blockchain network or testnet. Another advantage is the reproducibility of the code due to same execution condition like same private kays and users addresses (reproducibility ⮕ testable).  
