@@ -28,7 +28,7 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = (receipt?.logs.find((event: any) => event.event === "GameReady") as EventLog).args?._game_id;
+        const gameId = (receipt?.logs.find((event: any) => (event as EventLog).eventName === "GameReady") as EventLog).args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -100,6 +100,7 @@ describe("Mastermind", function () {
             const { mastermind, p4, gameId } = await loadFixture(gameFixedFixture);
 
             // Join the game
+            
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
             const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
@@ -123,7 +124,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt?.logs.find((event: any) => event.event === "PlayersReady");
+            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
             // Join again the game
             await expect(mastermind.connect(p2).joinGame(gameId)).to.be.revertedWith("[Internal Error] Supplied Game cannot accept opponents");
