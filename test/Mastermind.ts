@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { time, loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { EventLog } from "ethers";
+import { ContractTransactionReceipt, EventLog, Log } from "ethers";
+import { TypeChainEthersContractByName } from "@nomicfoundation/hardhat-ignition-ethers/dist/src/ethers-ignition-helper";
 
 describe("Mastermind", function () {
     
@@ -28,7 +29,7 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = (receipt?.logs.find((event: any) => (event as EventLog).eventName === "GameReady") as EventLog).args?._game_id;
+        const gameId = findEvent(receipt, "GameReady").args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -45,7 +46,7 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = (receipt?.logs.find((event: any) => (event as EventLog).eventName === "GameReady") as EventLog).args?._game_id;
+        const gameId = findEvent(receipt, "GameReady").args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -68,7 +69,7 @@ describe("Mastermind", function () {
             );
 
             const receipt = await newGameTx.wait();
-            const event = receipt?.logs.find((event) => (event as EventLog).eventName === "GameReady");
+            const event = findEvent(receipt, "GameReady");
             expect(event).to.not.be.undefined;
 
             const gameId = (event as EventLog).args._game_id;
@@ -93,7 +94,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p3).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
+            const joinEvent = findEvent(joinReceipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
         it("should allow selected player to join the game and emit PlayersReady event", async function () {
@@ -103,7 +104,7 @@ describe("Mastermind", function () {
             
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
+            const joinEvent = findEvent(joinReceipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
         it("Should revert with the right error if called with creator as opponent", async function () {
@@ -124,7 +125,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
+            const joinEvent = findEvent(joinReceipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
             // Join again the game
             await expect(mastermind.connect(p2).joinGame(gameId)).to.be.revertedWith("[Internal Error] Supplied Game cannot accept opponents");
@@ -137,6 +138,13 @@ describe("Mastermind", function () {
             await expect(mastermind.connect(p4).joinGame(invalidGameId)).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
         });
     });
+
+    function findEvent(
+        receipt:  ContractTransactionReceipt | null, 
+        event_name: string
+    ) {
+        return receipt?.logs.find((event) => (event as EventLog).eventName === event_name) as EventLog;
+    }
 
     // it("should handle staking and emit StakeSuccessful event", async function () {
     //     const { mastermind, p1, gameId } = await loadFixture(gameCreatedFixture);
