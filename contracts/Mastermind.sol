@@ -119,8 +119,8 @@ contract Mastermind {
         game.code_symbols_amt = _code_symbols_amt;
 
         // Return game_id
-        console.log("Game ID: ");
-        console.logBytes32(game_id);
+        // console.log("Game ID: ");
+        // console.logBytes32(game_id);
         emit GameReady(game_id);
         return game_id;
     }
