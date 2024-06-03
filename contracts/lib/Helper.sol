@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "./GameState.sol";
 import "./Game.sol";
 
-library MastermindHelper {
+library Helper {
     
     /**
      * @dev Terrible and ugly function to pop the first element of an array

@@ -51,6 +51,8 @@ contract Mastermind {
      */
     event StakeSuccessful(bytes32 indexed _game_id, uint _stake);
 
+    event StakeFailed(bytes32 indexed _game_id, uint _creator_stake, uint _opp_stake);
+
     /**
      * @dev Log the beginning of the game
      * @param _game_id Id of the game
@@ -58,9 +60,19 @@ contract Mastermind {
      */
     event GameStart( bytes32 indexed _game_id, bool _creator_is_first_breaker);
 
-    event TurnOver( bytes32 indexed _game_id, uint _turn_num);
+    event SecretSet( bytes32 indexed _game_id, uint _turn_num);
+
+    event GuessSent( bytes32 indexed _game_id, uint _turn_num, bytes16 _guess);
+
+    event FeedbackSent( bytes32 indexed _game_id, uint _turn_num, bytes2 _feedback);
+
+    event TurnOver( bytes32 indexed _game_id, uint _turn_num, bytes16 _code_sol);
 
     event GameWinner( bytes32 indexed _game_id, address _winner);
+
+    event disputeSent( bytes32 indexed _game_id, address _sender);
+
+    event disputeWon( bytes32 indexed _game_id, address _winner);
 
 
     //-----------------
@@ -94,7 +106,7 @@ contract Mastermind {
         require(_opponent != msg.sender, "The opponent cannot be the game creator");
         
         // Get game id
-        bytes32 game_id = MastermindHelper.create_game_uuid();
+        bytes32 game_id = Helper.create_game_uuid();
 
         // Initialize empty game struct in storage
         Game storage game = games[game_id];
@@ -137,7 +149,7 @@ contract Mastermind {
         //Retrieve Game
         if (_game_id == 0) {
             _game_id = searching_games[searching_games.length];
-            MastermindHelper.pop_first(searching_games);
+            Helper.pop_first(searching_games);
         }
         Game storage game = games[_game_id];
 
@@ -166,6 +178,7 @@ contract Mastermind {
             GameFunction.beginGame(game);
             emit GameStart(_game_id, game.creator_is_first_breaker);
         } else if (game.state == GameState.waiting_stake) {
+            emit StakeFailed(_game_id, game.stake, msg.value);
             pending_return[game.creator] += game.stake;
             pending_return[game.opponent] += msg.value;
         }
@@ -207,8 +220,9 @@ contract Mastermind {
      */
     function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public {
         Game storage game = games[_game_id];
-        MastermindHelper.validateSenderIdentity(game);
+        Helper.validateSenderIdentity(game);
         GameFunction.setTurnCode(game,_code_hash);
+        emit SecretSet(_game_id, game.curr_turn);
     }
 
     /**
@@ -218,11 +232,12 @@ contract Mastermind {
      */    
     function guess(bytes32 _game_id, bytes16 _guess) public {
         Game storage game = games[_game_id];
-        MastermindHelper.validateSenderIdentity(game);
+        Helper.validateSenderIdentity(game);
         GameFunction.addGuess(game, _guess);
 
         // Update turn state
         StateMachine.nextTurnState(game);
+        emit GuessSent(_game_id, game.curr_turn, _guess);
     }
 
     /**
@@ -232,13 +247,14 @@ contract Mastermind {
      */
     function giveFeedback(
         bytes32 _game_id,
-        bytes1 _feedback
+        bytes2 _feedback
     ) public {
         Game storage game = games[_game_id];
-        MastermindHelper.validateSenderIdentity(game);
+        Helper.validateSenderIdentity(game);
         //If you submit different feedback for the same guess you lose since you cheated
         if (GameFunction.addFeedback(game, _feedback)) {
             StateMachine.nextTurnState(game);
+            emit FeedbackSent(_game_id,game.curr_turn,_feedback);
         } else {
             GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         }
@@ -256,7 +272,7 @@ contract Mastermind {
         bytes4 _salt
     ) public {
         Game storage game = games[_game_id];
-        MastermindHelper.validateSenderIdentity(game);
+        Helper.validateSenderIdentity(game);
 
         // If the revealed code or salt is wrong instant game over
         // CodeMaker loses its stake forever
@@ -265,9 +281,9 @@ contract Mastermind {
             GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         } else {
             GameFunction.setSolution(game, _code_sol, _salt);
-            emit TurnOver(_game_id, game.curr_turn);
             StateMachine.nextTurnState(game);
             GameFunction.setTurnLockTime(game, t_disp);
+            emit TurnOver(_game_id, game.curr_turn, _code_sol);
 
             if (game.curr_turn == game.turns_amt) {
                 StateMachine.nextState(game);
@@ -280,7 +296,7 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
-        MastermindHelper.validateSenderIdentity(game);
+        Helper.validateSenderIdentity(game);
 
         address accused;
         if(msg.sender == game.creator) {
@@ -308,17 +324,25 @@ contract Mastermind {
         bytes16 _guess
     ) public {
         Game storage game = games[_game_id];
-
+        Helper.validateSenderIdentity(game);
         require(
             block.timestamp < game.turn.lock_time,
             "The turn cannot be disputed"
         );
 
+        emit disputeSent(_game_id, msg.sender);
+
+        address winner;
+
         if (GameFunction.hasMakerCheated(game,_guess)) {
-            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
+            winner = GameFunction.getCurrBreaker(game, true);
+            GameFunction.forceGameOver(game,winner);
         } else {
-            GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, false));
+            winner = GameFunction.getCurrBreaker(game, false);
+            GameFunction.forceGameOver(game,winner);
         }
+
+        emit disputeWon(_game_id, winner);
 
         delete(games[_game_id]);
     }
@@ -327,6 +351,7 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
-        MastermindHelper.accuseAFK(game,t_afk);
+        Helper.validateSenderIdentity(game);
+        Helper.accuseAFK(game,t_afk);
     }
 }

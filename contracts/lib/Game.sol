@@ -283,7 +283,11 @@ library GameFunction {
         }
 
         for(uint8 i = 0; i < _game.code_len; i++) {
-            nc += uint8(missing >> uint8(bytes1(sol << 8*i)) & uint256(1));
+            uint8 n = uint8( (missing >> uint8(bytes1(sol << 8*i))) & uint256(1) );
+            if (n == 1) {
+                nc += n;
+                missing = missing & ~(uint256(1) << uint8(bytes1(sol << 8*i)));
+            }
         }
 
         return !((cc == stored_cc) && (nc == stored_nc));
