@@ -29,9 +29,28 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = findEvent(receipt, "GameReady").args?._game_id;
+        const gameId = findEvent(receipt, "GameCreated").args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
+    }
+
+    async function GameCreatedFixture() {
+        const { mastermind, owner, p1, p2, p3, p4, others } = await loadFixture(deployMastermindFixture);
+
+        // Create a game
+        const gameTx = await mastermind.connect(p1).createGame(
+            hre.ethers.ZeroAddress, // No specific opponent
+            4, // Code length
+            8, // Number of symbols
+            10 // Bonus points
+        );
+
+        const receipt = await gameTx.wait();
+        const gameId = findEvent(receipt, "GameCreated").args?._game_id;
+
+        await (await mastermind.connect(p2).joinGame(gameId)).wait();
+
+        return { mastermind, owner, p1, p2, others, gameId };
     }
 
     async function gameRandomFixture() {
@@ -46,7 +65,7 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = findEvent(receipt, "GameReady").args?._game_id;
+        const gameId = findEvent(receipt, "GameCreated").args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -58,7 +77,7 @@ describe("Mastermind", function () {
     });
 
     describe("Game Creation", function () {
-        it("should create a game and emit GameReady event", async function () {
+        it("should create a game and emit GameCreated event", async function () {
             const { mastermind, p1 } = await loadFixture(deployMastermindFixture);
 
             const newGameTx = await mastermind.connect(p1).createGame(
@@ -69,7 +88,7 @@ describe("Mastermind", function () {
             );
 
             const receipt = await newGameTx.wait();
-            const event = findEvent(receipt, "GameReady");
+            const event = findEvent(receipt, "GameCreated");
             expect(event).to.not.be.undefined;
 
             const gameId = (event as EventLog).args._game_id;
@@ -146,16 +165,25 @@ describe("Mastermind", function () {
         return receipt?.logs.find((event) => (event as EventLog).eventName === event_name) as EventLog;
     }
 
-    // it("should handle staking and emit StakeSuccessful event", async function () {
-    //     const { mastermind, p1, gameId } = await loadFixture(gameCreatedFixture);
+    describe("Lobby Management", function () {
 
-    //     // Propose a stake by the creator
-    //     const stakeAmount = hre.ethers.utils.parseEther("1.0");
-    //     const proposeStakeTx = await mastermind.proposeStake(gameId, { value: stakeAmount });
-    //     const proposeStakeReceipt = await proposeStakeTx.wait();
-    //     const stakeEvent = proposeStakeReceipt.events?.find((event: any) => event.event === "StakeSuccessful");
-    //     expect(stakeEvent).to.not.be.undefined;
-    // });
+        it("Should handle staking and emit StakeSuccessful event", async function () {
+            const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
+
+            // Propose a stake by the creator
+            const stakeAmount = hre.ethers.parseEther("1.0");
+            await (await mastermind.connect(p1).proposeStake(gameId, { value: stakeAmount })).wait();
+            const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: stakeAmount })).wait();
+            const stakeEvent = findEvent(receipt, "StakeSuccessful");
+            expect(stakeEvent).to.not.be.undefined;
+        });
+
+        it("Should handle staking failing and emit StakeFailed event with the failing value", async function () {
+            const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
+
+            
+        });
+    });
 
     // it("should allow setting and guessing the code", async function () {
     //     const { mastermind, p1, gameId } = await loadFixture(gameCreatedFixture);

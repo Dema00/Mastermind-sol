@@ -139,31 +139,21 @@ library StateMachine {
 
         if(_game.state == GameState.searching_opponent) {
             _game.state = GameState.waiting_stake;
-        }
-
-        if(_game.state == GameState.waiting_opponent) {
+        } else if(_game.state == GameState.waiting_opponent) {
             _game.state = GameState.waiting_stake;
-        }
-
-        if(_game.state == GameState.waiting_stake) {
+        } else if(_game.state == GameState.waiting_stake) {
             _game.state = GameState.confirming_stake;
-        }
-
-        if(
+        } else if(
             _game.state == GameState.confirming_stake &&
             _game.stake == 0
         ) {
             _game.state = GameState.waiting_stake;
-        }
-
-        if(
+        } else if(
             _game.state == GameState.confirming_stake &&
             _game.stake != 0
         ) {
             _game.state = GameState.ready;
-        }
-
-        if(_game.state == GameState.ready) {
+        } else if(_game.state == GameState.ready) {
             _game.state = GameState.playing;
         }
     }
@@ -177,31 +167,21 @@ library StateMachine {
 
         if(_game.turn.curr_cc == _game.code_len) {
             _game.turn.state = TurnState.revealing_code;
-        }
-
-        if(_game.turn.state == TurnState.defining_secret) {
+        } else if(_game.turn.state == TurnState.defining_secret) {
             _game.turn.state = TurnState.guessing;
-        }
-
-        if(_game.turn.state == TurnState.guessing) {
+        } else if(_game.turn.state == TurnState.guessing) {
             _game.turn.state = TurnState.giving_feedback;
-        }
-
-        if(
+        } else if(
             _game.turn.state == TurnState.giving_feedback &&
             _game.turn.curr_guess >= _game.guess_amt
         ) {
             _game.turn.state = TurnState.revealing_code;
-        }
-
-        if(
+        } else if(
             _game.turn.state == TurnState.giving_feedback &&
             _game.turn.curr_guess < _game.guess_amt
         ) {
             _game.turn.state = TurnState.guessing;
-        }
-
-        if(_game.turn.state == TurnState.revealing_code) {
+        } else if(_game.turn.state == TurnState.revealing_code) {
             _game.turn.state == TurnState.turn_over;
         }
     }
