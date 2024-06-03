@@ -165,6 +165,18 @@ describe("Mastermind", function () {
         return receipt?.logs.find((event) => (event as EventLog).eventName === event_name) as EventLog;
     }
 
+    function findEventInGame(
+        receipt:  ContractTransactionReceipt | null, 
+        event_name: string,
+        game_id: string
+    ) {
+        return receipt?.logs.find((event) => {
+            const ev = (event as EventLog);
+            ev.eventName === event_name && (ev.args?._game_id === game_id);
+            return ev;
+        }) as EventLog;
+    }
+
     describe("Lobby Management", function () {
 
         it("Should handle staking and emit StakeSuccessful event", async function () {
@@ -174,13 +186,19 @@ describe("Mastermind", function () {
             const stakeAmount = hre.ethers.parseEther("1.0");
             await (await mastermind.connect(p1).proposeStake(gameId, { value: stakeAmount })).wait();
             const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: stakeAmount })).wait();
-            const stakeEvent = findEvent(receipt, "StakeSuccessful");
-            expect(stakeEvent).to.not.be.undefined;
+            const stakeEvent = findEventInGame(receipt, "StakeSuccessful", gameId);
+            expect(stakeEvent.args?._game_id).to.equal(gameId);
+            expect(stakeEvent.args?._stake).to.equal(stakeAmount);
         });
 
-        it("Should handle staking failing and emit StakeFailed event with the failing value", async function () {
+        it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
             const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
-
+            
+            await (await mastermind.connect(p1).proposeStake(gameId, { value: hre.ethers.parseEther("1.0") })).wait();
+            const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: hre.ethers.parseEther("2.0") })).wait();
+            const stakeEvent = findEventInGame(receipt, "StakeFailed", gameId);
+            expect(stakeEvent.args?._game_id).to.equal(gameId);
+            expect(stakeEvent.args?._opp_stake).to.equal(hre.ethers.parseEther("2.0"));
             
         });
     });

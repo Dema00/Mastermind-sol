@@ -35,7 +35,7 @@ contract Mastermind {
      * @dev Log a successful game instance
      * @param _game_id Id of the game associated with the match
      */
-    event GameCreated(bytes32 _game_id);
+    event GameCreated(bytes32 indexed _game_id, address indexed _game_creator);
 
     /**
      * @dev Log a successful matchmaking instance
@@ -51,7 +51,9 @@ contract Mastermind {
      */
     event StakeSuccessful(bytes32 indexed _game_id, uint _stake);
 
-    event StakeFailed(bytes32 indexed _game_id, uint _creator_stake, uint _opp_stake);
+    event StakeFailed(bytes32 indexed _game_id, uint _opp_stake);
+
+    event StakeSent(bytes32 indexed _game_id, uint _stake);
 
     /**
      * @dev Log the beginning of the game
@@ -133,7 +135,7 @@ contract Mastermind {
         // Return game_id
         // console.log("Game ID: ");
         // console.logBytes32(game_id);
-        emit GameCreated(game_id);
+        emit GameCreated(game_id, game.creator);
         return game_id;
     }
 
@@ -178,9 +180,11 @@ contract Mastermind {
             GameFunction.beginGame(game);
             emit GameStart(_game_id, game.creator_is_first_breaker);
         } else if (game.state == GameState.waiting_stake) {
-            emit StakeFailed(_game_id, game.stake, msg.value);
+            emit StakeFailed(_game_id, msg.value);
             pending_return[game.creator] += game.stake;
             pending_return[game.opponent] += msg.value;
+        } else {
+            emit StakeSent(_game_id, game.stake);
         }
     }
 
