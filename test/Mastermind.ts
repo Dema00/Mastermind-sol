@@ -1,16 +1,17 @@
 import { expect } from "chai";
 import hre from "hardhat";
-// import { ethers } from "ethers";
 import { time, loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { EventLog } from "ethers";
 
 describe("Mastermind", function () {
+    
     async function deployMastermindFixture() {
         const Mastermind = await hre.ethers.getContractFactory("Mastermind");
         // Get the players from the account list
         const [owner, p1, p2, p3, p4, ...others] = await hre.ethers.getSigners();
 
         const mastermind = await Mastermind.deploy();
-        await mastermind.deployed();
+        await mastermind.waitForDeployment();
 
         return { mastermind, owner, p1, p2, p3, p4, others };
     }
@@ -27,7 +28,7 @@ describe("Mastermind", function () {
         );
 
         const receipt = await gameTx.wait();
-        const gameId = receipt.events?.find((event: any) => event.event === "GameReady")?.args?._game_id;
+        const gameId = (receipt?.logs.find((event: any) => event.event === "GameReady") as EventLog).args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -36,15 +37,15 @@ describe("Mastermind", function () {
         const { mastermind, owner, p1, p2, p3, p4, others } = await loadFixture(deployMastermindFixture);
 
         // Create a game
-        const gameTx = await await mastermind.connect(p1).createGame(
-            hre.ethers.constants.AddressZero, // No specific opponent
+        const gameTx = await mastermind.connect(p1).createGame(
+            hre.ethers.ZeroAddress, // No specific opponent
             4, // Code length
             8, // Number of symbols
             10 // Bonus points
         );
 
         const receipt = await gameTx.wait();
-        const gameId = receipt.events?.find((event: any) => event.event === "GameReady")?.args?._game_id;
+        const gameId = (receipt?.logs.find((event: any) => (event as EventLog).eventName === "GameReady") as EventLog).args?._game_id;
 
         return { mastermind, owner, p1, p2, p3, p4, others, gameId };
     }
@@ -52,7 +53,7 @@ describe("Mastermind", function () {
     it("should deploy the contract correctly", async function () {
         const { mastermind, owner } = await loadFixture(deployMastermindFixture);
         // Check if the contract is deployed by verifying the address
-        expect(mastermind.address).to.properAddress;
+        expect(await mastermind.getAddress()).to.be.properAddress;
     });
 
     describe("Game Creation", function () {
@@ -60,17 +61,17 @@ describe("Mastermind", function () {
             const { mastermind, p1 } = await loadFixture(deployMastermindFixture);
 
             const newGameTx = await mastermind.connect(p1).createGame(
-                hre.ethers.constants.AddressZero, // No specific opponent
+                hre.ethers.ZeroAddress, // No specific opponent
                 4, // Code length
                 8, // Number of symbols
                 10 // Bonus points
             );
 
             const receipt = await newGameTx.wait();
-            const event = receipt.events?.find((event: any) => event.event === "GameReady");
+            const event = receipt?.logs.find((event) => (event as EventLog).eventName === "GameReady");
             expect(event).to.not.be.undefined;
 
-            const gameId = event?.args?._game_id;
+            const gameId = (event as EventLog).args._game_id;
             expect(gameId).to.not.be.undefined;
         });
 
@@ -92,7 +93,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p3).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt.events?.find((event: any) => event.event === "PlayersReady");
+            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
         it("should allow selected player to join the game and emit PlayersReady event", async function () {
@@ -101,7 +102,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt.events?.find((event: any) => event.event === "PlayersReady");
+            const joinEvent = joinReceipt?.logs.find((event) => (event as EventLog).eventName === "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
         it("Should revert with the right error if called with creator as opponent", async function () {
@@ -122,7 +123,7 @@ describe("Mastermind", function () {
             // Join the game
             const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
             const joinReceipt = await joinGameTx.wait();
-            const joinEvent = joinReceipt.events?.find((event: any) => event.event === "PlayersReady");
+            const joinEvent = joinReceipt?.logs.find((event: any) => event.event === "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
             // Join again the game
             await expect(mastermind.connect(p2).joinGame(gameId)).to.be.revertedWith("[Internal Error] Supplied Game cannot accept opponents");

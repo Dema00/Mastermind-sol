@@ -2,9 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ignition-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
-import 'solidity-coverage';
-import 'hardhat-gas-reporter';
-import '@nomiclabs/hardhat-ethers';
+import '@nomicfoundation/hardhat-ethers';
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -43,5 +41,4 @@ const config: HardhatUserConfig = {
 
   },
 };
-
 export default config;
