@@ -244,16 +244,22 @@ describe("Mastermind", function () {
             });
         });
 
-        /*it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
-            const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
+        it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
+            const { manager, creator, opponent, gameId } = await loadFixture(GameCreatedFixture);
             
-            await (await mastermind.connect(p1).proposeStake(gameId, { value: hre.ethers.parseEther("1.0") })).wait();
-            const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: hre.ethers.parseEther("2.0") })).wait();
-            const stakeEvent = findEventInGame(receipt, "StakeFailed", gameId);
+            await creator.execFunction("proposeStake",[gameId], {value: hre.ethers.parseEther("1.0") });
+            await opponent.execFunction("proposeStake",[gameId], { value: hre.ethers.parseEther("2.0") });
+
+            await manager.test("StakeFailed", (_game_id, _opp_stake) => {
+                expect(_game_id).to.equal(gameId);
+                expect(_opp_stake).to.equal(hre.ethers.parseEther("2.0"));
+            });
+            
+            /*const stakeEvent = findEventInGame(receipt, "StakeFailed", gameId);
             expect(stakeEvent.args._game_id).to.equal(gameId);
-            expect(stakeEvent.args._opp_stake).to.equal(hre.ethers.parseEther("2.0"));
+            expect(stakeEvent.args._opp_stake).to.equal(hre.ethers.parseEther("2.0"));*/
             
-        });*/
+        });
     });
 
 
