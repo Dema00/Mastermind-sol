@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { time, loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { Contract, ContractMethodArgs, ContractTransactionReceipt, ContractTransactionResponse, EventLog, Filter, JsonRpcProvider, Listener, Log } from "ethers";
+import { AddressLike, Contract, ContractMethodArgs, ContractTransactionReceipt, ContractTransactionResponse, EventLog, Filter, JsonRpcProvider, Listener, Log } from "ethers";
 import { TypeChainEthersContractByName } from "@nomicfoundation/hardhat-ignition-ethers/dist/src/ethers-ignition-helper";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { TypedContractEvent, TypedContractMethod } from "../typechain-types/common";
@@ -32,10 +32,12 @@ function findEventInGame(
 class Actor {
     g: Mastermind;
     m: ContractTestManager;
+    address: AddressLike;
 
     constructor(game: Mastermind, actor: HardhatEthersSigner, manager: ContractTestManager) {
         this.g = game.connect(actor);
         this.m = manager;
+        this.address = actor.address;
     }
 
     async execFunction<A extends any[]>(
@@ -82,31 +84,30 @@ describe("Mastermind", function () {
 
         const manager = new ContractTestManager(mastermind, await mastermind.getAddress());
 
-        return { mastermind, owner, p1, p2, p3, p4, others, manager };
+        const creator = manager.newActor(p1);
+        const opponent = manager.newActor(p2);
+        const griefer = manager.newActor(p3);
+
+        return { creator, opponent, griefer, manager };
     }
 
     async function gameFixedFixture() {
-        const { mastermind, owner, p1, p2, p3, p4, others } = await loadFixture(deployMastermindFixture);
+        const { creator, opponent, griefer, manager} = await loadFixture(deployMastermindFixture);
 
-        // Create a game
-        const gameTx = await mastermind.connect(p1).createGame(
-            p4.address, // Specific opponent
-            4, // Code length
-            8, // Number of symbols
-            10 // Bonus points
+        const receipt = await creator.execFunction("createGame",[
+            opponent.address,
+            4, 
+            8, 
+            10]
         );
 
-        const receipt = await gameTx.wait();
-        const gameId = findEvent(receipt, "GameCreated").args?._game_id;
+        const gameId = findEvent(receipt, "GameCreated").args._game_id;
 
-        return { mastermind, owner, p1, p2, p3, p4, others, gameId };
+        return { creator, opponent, griefer, manager, gameId,};
     }
 
     async function GameCreatedFixture() {
-        const { mastermind, owner, p1, p2, p3, p4, others, manager } = await loadFixture(deployMastermindFixture);
-        
-        const creator = manager.newActor(p1);
-        const opponent = manager.newActor(p2);
+        const { creator, opponent, griefer, manager } = await loadFixture(deployMastermindFixture);
 
         const receipt = await creator.execFunction("createGame",[
             hre.ethers.ZeroAddress,
@@ -117,113 +118,112 @@ describe("Mastermind", function () {
 
         const gameId = findEvent(receipt, "GameCreated").args._game_id;
 
-        opponent.execFunction("joinGame",[gameId]);
+        await opponent.execFunction("joinGame",[gameId]);
 
         return { creator, opponent, gameId, manager };
     }
 
     async function gameRandomFixture() {
-        const { mastermind, owner, p1, p2, p3, p4, others } = await loadFixture(deployMastermindFixture);
+        const { creator, opponent, griefer, manager } = await loadFixture(deployMastermindFixture);
 
         // Create a game
-        const gameTx = await mastermind.connect(p1).createGame(
-            hre.ethers.ZeroAddress, // No specific opponent
-            4, // Code length
-            8, // Number of symbols
-            10 // Bonus points
+        const receipt = await creator.execFunction("createGame",[
+            hre.ethers.ZeroAddress,
+            4, 
+            8, 
+            10]
         );
 
-        const receipt = await gameTx.wait();
         const gameId = findEvent(receipt, "GameCreated").args?._game_id;
 
-        return { mastermind, owner, p1, p2, p3, p4, others, gameId };
+        return { creator, opponent, griefer, manager, gameId };
     }
 
     it("should deploy the contract correctly", async function () {
-        const { mastermind, owner } = await loadFixture(deployMastermindFixture);
+        const { manager } = await loadFixture(deployMastermindFixture);
         // Check if the contract is deployed by verifying the address
-        expect(await mastermind.getAddress()).to.be.properAddress;
+        expect(await manager.g.getAddress()).to.be.properAddress;
     });
 
     describe("Game Creation", function () {
         it("should create a game and emit GameCreated event", async function () {
-            const { mastermind, p1 } = await loadFixture(deployMastermindFixture);
+            const { manager, creator } = await loadFixture(deployMastermindFixture);
 
-            const newGameTx = await mastermind.connect(p1).createGame(
+            const receipt = await creator.execFunction("createGame",[
                 hre.ethers.ZeroAddress, // No specific opponent
                 4, // Code length
                 8, // Number of symbols
                 10 // Bonus points
-            );
-
-            const receipt = await newGameTx.wait();
+            ]);
             const event = findEvent(receipt, "GameCreated");
             expect(event).to.not.be.undefined;
 
-            const gameId = (event as EventLog).args._game_id;
+            const gameId = event.args._game_id;
             expect(gameId).to.not.be.undefined;
         });
 
         it("Should revert with the right error if called upon itself", async function () {
-            const { mastermind, p1 } = await loadFixture(deployMastermindFixture);
+            const { manager, creator } = await loadFixture(deployMastermindFixture);
 
-            await expect(mastermind.connect(p1).createGame(
-                p1.address, // Specific opponent
+            expect(creator.execFunction("createGame",[
+                creator.address, // Specific opponent
                 4, // Code length
                 8, // Number of symbols
                 10 // Bonus points
-            )).to.be.revertedWith("The opponent cannot be the game creator");
+            ])).to.be.revertedWith("The opponent cannot be the game creator");
         });
     });
     describe("Join Game", function () {
+
         it("should allow a random player to join a game and emit PlayersReady event", async function () {
-            const { mastermind, p3, gameId } = await loadFixture(gameRandomFixture);
+            const { manager, griefer, gameId } = await loadFixture(gameRandomFixture);
 
             // Join the game
-            const joinGameTx = await mastermind.connect(p3).joinGame(gameId);
-            const joinReceipt = await joinGameTx.wait();
-            const joinEvent = findEvent(joinReceipt, "PlayersReady");
+            const receipt = await griefer.execFunction("joinGame",[gameId]);
+            const joinEvent = findEvent(receipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
+
         it("should allow selected player to join the game and emit PlayersReady event", async function () {
-            const { mastermind, p4, gameId } = await loadFixture(gameFixedFixture);
+            const { manager, creator, opponent, gameId } = await loadFixture(gameFixedFixture);
 
             // Join the game
-            
-            const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
-            const joinReceipt = await joinGameTx.wait();
-            const joinEvent = findEvent(joinReceipt, "PlayersReady");
+            const receipt = await opponent.execFunction("joinGame",[gameId]);
+            const joinEvent = findEvent(receipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
         });
+
         it("Should revert with the right error if called with creator as opponent", async function () {
-            const { mastermind, p1, gameId } = await loadFixture(gameRandomFixture);
+            const { manager, creator, gameId } = await loadFixture(gameRandomFixture);
 
             // Join the game
-            await expect(mastermind.connect(p1).joinGame(gameId)).to.be.revertedWith("[Internal Error] Creator and opponent cannot be the same");
+            await expect(creator.execFunction("joinGame",[gameId])).to.be.revertedWith("[Internal Error] Creator and opponent cannot be the same");
         });
+        
         it("Should revert with the right error if called by the non selected opponent", async function () {
-            const { mastermind, p3, gameId } = await loadFixture(gameFixedFixture);
+            const { griefer, gameId } = await loadFixture(gameFixedFixture);
 
             // Join the game
-            await expect(mastermind.connect(p3).joinGame(gameId)).to.be.revertedWith("Opponent cannot join Game");
+            await expect(griefer.execFunction("joinGame",[gameId])).to.be.revertedWith("Opponent cannot join Game");
         });
+
         it("Should revert with the right error if someone else wants to join", async function () {
-            const { mastermind, p2, p4, gameId } = await loadFixture(gameRandomFixture);
+            const { manager, opponent, griefer, gameId } = await loadFixture(gameRandomFixture);
 
             // Join the game
-            const joinGameTx = await mastermind.connect(p4).joinGame(gameId);
-            const joinReceipt = await joinGameTx.wait();
-            const joinEvent = findEvent(joinReceipt, "PlayersReady");
+            const receipt = await opponent.execFunction("joinGame",[gameId]);
+            const joinEvent = findEvent(receipt, "PlayersReady");
             expect(joinEvent).to.not.be.undefined;
             // Join again the game
-            await expect(mastermind.connect(p2).joinGame(gameId)).to.be.revertedWith("[Internal Error] Supplied Game cannot accept opponents");
+            await expect(griefer.execFunction("joinGame",[gameId])).to.be.revertedWith("[Internal Error] Supplied Game cannot accept opponents");
         });
+
         it("Should revert with the right error if wanna join a non existing game", async function () {
-            const { mastermind, p4 } = await loadFixture(gameRandomFixture);
+            const { manager, griefer } = await loadFixture(gameRandomFixture);
 
             const invalidGameId = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming this game ID does not exist
             // Try join the game
-            await expect(mastermind.connect(p4).joinGame(invalidGameId)).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
+            await expect(griefer.execFunction("joinGame",[invalidGameId])).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
         });
     });
 
