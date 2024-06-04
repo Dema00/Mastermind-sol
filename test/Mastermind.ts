@@ -104,10 +104,6 @@ describe("Mastermind", function () {
 
     async function GameCreatedFixture() {
         const { mastermind, owner, p1, p2, p3, p4, others, manager } = await loadFixture(deployMastermindFixture);
-
-        const af = p1.provider;
-        const p =  new hre.ethers.JsonRpcProvider();
-        const c = new hre.ethers.Contract(await mastermind.getAddress(),mastermind.interface,p);
         
         const creator = manager.newActor(p1);
         const opponent = manager.newActor(p2);
