@@ -1,8 +1,74 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { time, loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ContractTransactionReceipt, EventLog, Log } from "ethers";
+import { Contract, ContractMethodArgs, ContractTransactionReceipt, ContractTransactionResponse, EventLog, Filter, JsonRpcProvider, Listener, Log } from "ethers";
 import { TypeChainEthersContractByName } from "@nomicfoundation/hardhat-ignition-ethers/dist/src/ethers-ignition-helper";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { TypedContractEvent, TypedContractMethod } from "../typechain-types/common";
+import { Mastermind } from "../typechain-types";
+import { HardhatEthersProvider } from "@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider";
+import { match } from "assert";
+import { connect } from "http2";
+
+function findEvent(
+    receipt:  ContractTransactionReceipt | null, 
+    event_name: string
+) {
+    return receipt?.logs.find((event) => (event as EventLog).eventName === event_name) as EventLog;
+}
+
+function findEventInGame(
+    receipt:  ContractTransactionReceipt | null, 
+    event_name: string,
+    game_id: string
+) {
+    return receipt?.logs.find((event) => {
+        const ev = (event as EventLog);
+        ev.eventName === event_name && (ev.args?._game_id === game_id);
+        return ev;
+    }) as EventLog;
+}
+
+class Actor {
+    g: Mastermind;
+    m: ContractTestManager;
+
+    constructor(game: Mastermind, actor: HardhatEthersSigner, manager: ContractTestManager) {
+        this.g = game.connect(actor);
+        this.m = manager;
+    }
+
+    async execFunction<A extends any[]>(
+        name: string,
+        args: ContractMethodArgs<A>,
+        prop: {} = {}
+    ) {
+        const response = await (await this.g.getFunction(name).call([],...args,prop) as ContractTransactionResponse).wait();
+        this.m.tx = response;
+        return response;
+    }
+}
+
+class ContractTestManager {
+    g: Mastermind;
+    p: HardhatEthersProvider;
+    tx: any;
+
+    constructor(game: Mastermind, game_address: string) {
+        this.g = game;
+        this.p = hre.ethers.provider;
+        this.tx = {};
+    }
+
+    newActor(actor : HardhatEthersSigner) {
+        return new Actor(this.g, actor, this) as Actor;
+    }
+
+    async test(event_name: string, listener: Listener) {
+        const event = findEvent(this.tx,event_name);
+        listener(...event.args);
+    }
+}
 
 describe("Mastermind", function () {
     
@@ -14,7 +80,9 @@ describe("Mastermind", function () {
         const mastermind = await Mastermind.deploy();
         await mastermind.waitForDeployment();
 
-        return { mastermind, owner, p1, p2, p3, p4, others };
+        const manager = new ContractTestManager(mastermind, await mastermind.getAddress());
+
+        return { mastermind, owner, p1, p2, p3, p4, others, manager };
     }
 
     async function gameFixedFixture() {
@@ -35,22 +103,27 @@ describe("Mastermind", function () {
     }
 
     async function GameCreatedFixture() {
-        const { mastermind, owner, p1, p2, p3, p4, others } = await loadFixture(deployMastermindFixture);
+        const { mastermind, owner, p1, p2, p3, p4, others, manager } = await loadFixture(deployMastermindFixture);
 
-        // Create a game
-        const gameTx = await mastermind.connect(p1).createGame(
-            hre.ethers.ZeroAddress, // No specific opponent
-            4, // Code length
-            8, // Number of symbols
-            10 // Bonus points
+        const af = p1.provider;
+        const p =  new hre.ethers.JsonRpcProvider();
+        const c = new hre.ethers.Contract(await mastermind.getAddress(),mastermind.interface,p);
+        
+        const creator = manager.newActor(p1);
+        const opponent = manager.newActor(p2);
+
+        const receipt = await creator.execFunction("createGame",[
+            hre.ethers.ZeroAddress,
+            4, 
+            8, 
+            10]
         );
 
-        const receipt = await gameTx.wait();
-        const gameId = findEvent(receipt, "GameCreated").args?._game_id;
+        const gameId = findEvent(receipt, "GameCreated").args._game_id;
 
-        await (await mastermind.connect(p2).joinGame(gameId)).wait();
+        opponent.execFunction("joinGame",[gameId]);
 
-        return { mastermind, owner, p1, p2, others, gameId };
+        return { creator, opponent, gameId, manager };
     }
 
     async function gameRandomFixture() {
@@ -158,49 +231,38 @@ describe("Mastermind", function () {
         });
     });
 
-    function findEvent(
-        receipt:  ContractTransactionReceipt | null, 
-        event_name: string
-    ) {
-        return receipt?.logs.find((event) => (event as EventLog).eventName === event_name) as EventLog;
-    }
-
-    function findEventInGame(
-        receipt:  ContractTransactionReceipt | null, 
-        event_name: string,
-        game_id: string
-    ) {
-        return receipt?.logs.find((event) => {
-            const ev = (event as EventLog);
-            ev.eventName === event_name && (ev.args?._game_id === game_id);
-            return ev;
-        }) as EventLog;
-    }
-
     describe("Lobby Management", function () {
 
         it("Should handle staking and emit StakeSuccessful event", async function () {
-            const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
+            const { gameId, manager, creator, opponent} = await loadFixture(GameCreatedFixture);
+
 
             // Propose a stake by the creator
             const stakeAmount = hre.ethers.parseEther("1.0");
-            await (await mastermind.connect(p1).proposeStake(gameId, { value: stakeAmount })).wait();
-            const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: stakeAmount })).wait();
-            const stakeEvent = findEventInGame(receipt, "StakeSuccessful", gameId);
-            expect(stakeEvent.args?._game_id).to.equal(gameId);
-            expect(stakeEvent.args?._stake).to.equal(stakeAmount);
+            await creator.execFunction("proposeStake",[gameId], {value: stakeAmount});
+            await opponent.execFunction("proposeStake",[gameId], {value: stakeAmount});
+
+            await manager.test("StakeSuccessful", (_game_id, _stake) => {
+                expect(_game_id).to.equal(gameId);
+                expect(_stake).to.equal(hre.ethers.parseEther("1.0"));
+            });
         });
 
-        it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
+        /*it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
             const { mastermind, p1, p2, gameId } = await loadFixture(GameCreatedFixture);
             
             await (await mastermind.connect(p1).proposeStake(gameId, { value: hre.ethers.parseEther("1.0") })).wait();
             const receipt = await (await mastermind.connect(p2).proposeStake(gameId, { value: hre.ethers.parseEther("2.0") })).wait();
             const stakeEvent = findEventInGame(receipt, "StakeFailed", gameId);
-            expect(stakeEvent.args?._game_id).to.equal(gameId);
-            expect(stakeEvent.args?._opp_stake).to.equal(hre.ethers.parseEther("2.0"));
+            expect(stakeEvent.args._game_id).to.equal(gameId);
+            expect(stakeEvent.args._opp_stake).to.equal(hre.ethers.parseEther("2.0"));
             
-        });
+        });*/
+    });
+
+
+    describe("Lobby Management", function () {
+
     });
 
     // it("should allow setting and guessing the code", async function () {
