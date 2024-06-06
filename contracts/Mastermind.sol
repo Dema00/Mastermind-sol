@@ -149,7 +149,7 @@ contract Mastermind {
     public {
         //Retrieve Game
         if (_game_id == 0) {
-            _game_id = searching_games[searching_games.length - 1];
+            _game_id = searching_games[0];
             Helper.pop_first(searching_games);
         }
         Game storage game = games[_game_id];
