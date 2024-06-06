@@ -224,6 +224,9 @@ describe("Mastermind", function () {
             const invalidGameId = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming this game ID does not exist
             // Try join the game
             await expect(griefer.execFunction("joinGame",[invalidGameId])).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
+            const nullGameId = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming this game ID does not exist
+            // Try join the game
+            await expect(griefer.execFunction("joinGame",[nullGameId])).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
         });
     });
 
@@ -260,11 +263,6 @@ describe("Mastermind", function () {
             expect(stakeEvent.args._opp_stake).to.equal(hre.ethers.parseEther("2.0"));*/
             
         });
-    });
-
-
-    describe("Lobby Management", function () {
-
     });
 
     // it("should allow setting and guessing the code", async function () {
