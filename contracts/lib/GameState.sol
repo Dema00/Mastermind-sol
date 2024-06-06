@@ -51,19 +51,19 @@ struct Game {
     mapping(address => uint) afk_timer;
 
     // Static game parameters
-    uint guess_amt;
-    uint turns_amt;
+    uint8 guess_amt;
+    uint8 turns_amt;
 
     // User set parameters
     uint stake;
     uint bonus;
-    uint code_len;
-    uint code_symbols_amt;
+    uint8 code_len;
+    uint8 code_symbols_amt;
 
     // Current game state
     GameState state;
     Turn turn;
-    uint curr_turn;
+    uint8 curr_turn;
         // The player that acts as the CodeBreaker during the first round
     bool creator_is_first_breaker;
 }
@@ -123,7 +123,7 @@ struct Turn {
     bytes32 code_hash;
     bytes16 guess;
     uint8 curr_cc;
-    uint16 curr_guess;
+    uint8 curr_guess;
     TurnState state;
     uint lock_time;
     mapping(bytes16 => bytes2) feedback;

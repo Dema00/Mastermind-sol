@@ -100,8 +100,8 @@ contract Mastermind {
      */
     function createGame(
         address _opponent,
-        uint _code_len,
-        uint _code_symbols_amt,
+        uint8 _code_len,
+        uint8 _code_symbols_amt,
         uint _bonus
     ) 
     public returns(bytes32) {
