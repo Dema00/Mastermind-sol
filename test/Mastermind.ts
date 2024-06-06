@@ -224,9 +224,16 @@ describe("Mastermind", function () {
             const invalidGameId = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming this game ID does not exist
             // Try join the game
             await expect(griefer.execFunction("joinGame",[invalidGameId])).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
+        });
+
+        it("Should join a game in queue when supplied with address 0", async function () {
+            const { manager, griefer, gameId } = await loadFixture(gameRandomFixture);
             const nullGameId = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming this game ID does not exist
-            // Try join the game
-            await expect(griefer.execFunction("joinGame",[nullGameId])).to.be.revertedWith("[Internal Error] Supplied Game does not exist");
+            griefer.execFunction("joinGame",[nullGameId]);
+
+            await manager.test("PlayersReady", (_game_id, _time) => {
+                expect(_game_id).to.be.equal(gameId);
+            });
         });
     });
 
