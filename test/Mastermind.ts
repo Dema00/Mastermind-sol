@@ -74,7 +74,6 @@ class ContractTestManager {
 }
 
 describe("Mastermind", function () {
-    
     async function deployMastermindFixture() {
         const Mastermind = await hre.ethers.getContractFactory("Mastermind");
         // Get the players from the account list
@@ -197,7 +196,6 @@ describe("Mastermind", function () {
         });
     });
     describe("Join Game", function () {
-
         it("should allow a random player to join a game and emit PlayersReady event", async function () {
             const { manager, griefer, gameId } = await loadFixture(gameRandomFixture);
 
@@ -261,7 +259,6 @@ describe("Mastermind", function () {
     });
 
     describe("Lobby Management", function () {
-
         it("Should handle staking and emit StakeSuccessful event", async function () {
             const { gameId, manager, creator, opponent} = await loadFixture(GameCreatedFixture);
 
@@ -345,22 +342,61 @@ describe("Mastermind", function () {
     });
 
     describe("In Game Management", function () {
-    it("should allow setting and guessing the code", async function () {
-        const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+        it("should allow setting the code", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+            // Set code hash TODO
+            // const codeHash = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("1234"));
+            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
 
-        // Set code hash
-        const codeHash = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("1234"));
-        if (creator_first_breaker)
-            await creator.execFunction("setCodeHash",[gameId, codeHash]);
-        else
-            await opponent.execFunction("proposeStake",[gameId, codeHash]);
+            if (creator_first_breaker)
+                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+            else
+                await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
 
-        await manager.test("SecretSet", (_game_id, curr_turn) => {
-            expect(_game_id).to.equal(gameId);
-            expect(curr_turn).to.not.be.undefined;
+            await manager.test("SecretSet", (_game_id, curr_turn) => {
+                expect(_game_id).to.equal(gameId);
+                expect(curr_turn).to.not.be.undefined;
+            });
         });
-    });
 
+        it("Should revert with the right error if wanna set the code but is not your turn", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+            // Set code hash
+            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+
+            if (!creator_first_breaker)
+               await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("TODO");
+            else
+               await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("TODO");
+        });
+
+        it("Should revert with the right error if wanna set the code on a non member game", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameFixture);
+            // Set code hash
+            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            await expect(griefer.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Sender not part of game");
+        });
+    
+        it("Should revert with the right error if wanna set the code on a non existing game", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameFixture);
+
+            const tmpGame = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            await expect(griefer.execFunction("setCodeHash",[tmpGame, tmpCodeHash])).to.be.revertedWith("Sender not part of game");
+        });
+
+        it("Should revert with the right error if wanna set the code twice", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameFixture);
+
+            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            if (creator_first_breaker) {
+                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+                await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
+            } else {
+                await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+                await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
+            }
+        });
 
     //     // Make a guess
     //     const guess = hre.ethers.utils.formatBytes32String("1234");
@@ -375,7 +411,7 @@ describe("Mastermind", function () {
     //     await mastermind.proposeStake(gameId, { value: stakeAmount });
     //     await mastermind.connect(p1).proposeStake(gameId, { value: stakeAmount });
 
-    //     // Set code hash
+    //     // Set code hash 
     //     const codeHash = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("1234"));
     //     await mastermind.setCodeHash(gameId, codeHash);
 
@@ -397,7 +433,7 @@ describe("Mastermind", function () {
     //     await mastermind.proposeStake(gameId, { value: stakeAmount });
     //     await mastermind.connect(p1).proposeStake(gameId, { value: stakeAmount });
 
-    //     // Set code hash
+    //     // Set code hash 
     //     const codeHash = hre.ethers.utils.keccak256(hre.ethers.utils.toUtf8Bytes("1234"));
     //     await mastermind.setCodeHash(gameId, codeHash);
 
