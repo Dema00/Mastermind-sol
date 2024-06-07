@@ -365,9 +365,9 @@ describe("Mastermind", function () {
             const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
 
             if (!creator_first_breaker)
-               await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("TODO");
+               await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Cannot set code during opponent's turn");
             else
-               await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("TODO");
+               await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Cannot set code during opponent's turn");
         });
 
         it("Should revert with the right error if wanna set the code on a non member game", async function () {

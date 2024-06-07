@@ -81,6 +81,11 @@ library GameFunction {
             "Wrong turn state"
         );
 
+        require(
+            msg.sender == getCurrBreaker(_game, false),
+            "Cannot set code during opponent's turn"
+        );
+
         _game.turn.code_hash = _code_hash;
     }
 
