@@ -388,7 +388,7 @@ describe("Mastermind", function () {
         it("Should revert with the right error if wanna set the code twice", async function () {
             const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameFixture);
 
-            const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            const tmpCodeHash = hre.ethers.id("code"); // Assuming that this make sense
             if (creator_first_breaker) {
                 await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
                 await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
