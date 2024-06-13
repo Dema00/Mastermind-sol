@@ -74,6 +74,7 @@ class ContractTestManager {
 }
 
 describe("Mastermind", function () {
+    // progress fixture
     async function deployMastermindFixture() {
         const Mastermind = await hre.ethers.getContractFactory("Mastermind");
         // Get the players from the account list
@@ -89,38 +90,6 @@ describe("Mastermind", function () {
         const griefer = manager.newActor(p3);
 
         return { creator, opponent, griefer, manager };
-    }
-
-    async function gameFixedFixture() {
-        const { creator, opponent, griefer, manager} = await loadFixture(deployMastermindFixture);
-
-        const receipt = await creator.execFunction("createGame",[
-            opponent.address,
-            4, 
-            8, 
-            10]
-        );
-
-        const gameId = findEvent(receipt, "GameCreated").args._game_id;
-
-        return { creator, opponent, griefer, manager, gameId,};
-    }
-
-    async function GameCreatedFixture() {
-        const { creator, opponent, griefer, manager } = await loadFixture(deployMastermindFixture);
-
-        const receipt = await creator.execFunction("createGame",[
-            hre.ethers.ZeroAddress,
-            4, 
-            8, 
-            10]
-        );
-
-        const gameId = findEvent(receipt, "GameCreated").args._game_id;
-
-        await opponent.execFunction("joinGame",[gameId]);
-
-        return { creator, opponent, gameId, manager, griefer };
     }
 
     async function gameRandomFixture() {
@@ -139,17 +108,40 @@ describe("Mastermind", function () {
         return { creator, opponent, griefer, manager, gameId };
     }
 
-    async function notEmptyStackFixture() {
-        const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
+    async function gameFixedFixture() {
+        const { creator, opponent, griefer, manager} = await loadFixture(deployMastermindFixture);
 
-        const stakeAmountA = hre.ethers.parseEther("10.0");
-        const stakeAmountB = hre.ethers.parseEther("100.0");
-        await creator.execFunction("proposeStake",[gameId], {value: stakeAmountA});
-        await opponent.execFunction("proposeStake",[gameId], {value: stakeAmountB});
+        const receipt = await creator.execFunction("createGame",[
+            opponent.address,
+            4, 
+            8, 
+            10]
+        );
 
-        return { creator, opponent, griefer, manager, gameId };
+        const gameId = findEvent(receipt, "GameCreated").args._game_id;
+
+        return { creator, opponent, griefer, manager, gameId,};
     }
 
+    // progress fixture
+    async function GameCreatedFixture() {
+        const { creator, opponent, griefer, manager } = await loadFixture(deployMastermindFixture);
+
+        const receipt = await creator.execFunction("createGame",[
+            hre.ethers.ZeroAddress,
+            4, 
+            8, 
+            10]
+        );
+
+        const gameId = findEvent(receipt, "GameCreated").args._game_id;
+
+        await opponent.execFunction("joinGame",[gameId]);
+
+        return { creator, opponent, gameId, manager, griefer };
+    }
+
+    // progress fixture
     async function inGameFixture() {
         const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
 
@@ -159,6 +151,34 @@ describe("Mastermind", function () {
         const creator_first_breaker = findEvent(receipt, "GameStart").args._creator_is_first_breaker;
 
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker };
+    }
+
+    // progress fixture
+    async function inGameGuessingFixture() {
+        const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+
+            const codeHash = hre.ethers.id("1234");
+
+            let receipt;
+            if (creator_first_breaker){
+                receipt = await creator.execFunction("setCodeHash",[gameId, codeHash]);
+            } else {
+                receipt = await opponent.execFunction("setCodeHash",[gameId, codeHash]);
+            }
+            const curr_turn = findEvent(receipt, "SecretSet").args._turn_num;
+
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn };
+    }
+
+    async function notEmptyStackFixture() {
+        const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
+
+        const stakeAmountA = hre.ethers.parseEther("10.0");
+        const stakeAmountB = hre.ethers.parseEther("100.0");
+        await creator.execFunction("proposeStake",[gameId], {value: stakeAmountA});
+        await opponent.execFunction("proposeStake",[gameId], {value: stakeAmountB});
+
+        return { creator, opponent, griefer, manager, gameId };
     }
 
     it("should deploy the contract correctly", async function () {
@@ -277,7 +297,7 @@ describe("Mastermind", function () {
             });
         });
 
-        //TODO aggiungi evento per emit StakeSent, come sopra ma quando il gioco piu avanti in un momento a caso
+        //TODO aggiungi evento per fare emit StakeSent, come sopra ma quando il gioco piu avanti caricando un fixture di in un momento a caso
 
         it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
             const { manager, creator, opponent, gameId } = await loadFixture(GameCreatedFixture);
@@ -397,6 +417,70 @@ describe("Mastermind", function () {
                 await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
             }
         });
+
+        it("should allow guessing the code alterning one and the other", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameGuessingFixture);
+
+            // TODO ma voglio mandare una stringa ma non un hash no?
+            const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+
+            console.log(curr_turn);
+            console.log(creator_first_breaker);
+
+            // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for opponent player
+            if ((curr_turn % 2n === 1n) && !creator_first_breaker || (curr_turn % 2n === 0n) && creator_first_breaker)  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+                await creator.execFunction("guess",[gameId, tmpGuess]);
+            else
+                await opponent.execFunction("guess",[gameId, tmpGuess]);
+
+            await manager.test("GuessSent", (_game_id, new_turn, guess) => {
+                expect(_game_id).to.equal(gameId);
+                expect(new_turn).to.equal(curr_turn + 1n);
+                expect(guess).to.equal(tmpGuess);
+            });
+    
+        });
+
+        it("Should revert with the right error if wanna guess the code but is not your turn", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameGuessingFixture);
+            // Set guess code
+            const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+
+            // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            if ((curr_turn % 2n === 1n) && !creator_first_breaker || (curr_turn % 2n === 0n) && creator_first_breaker)
+                await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Not your guessing turn");
+            else
+                await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Not your guessing turn");
+        });
+
+        it("Should revert with the right error if wanna guess the code on a non member game", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameGuessingFixture);
+            // Set code hash
+            const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+            await expect(griefer.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Sender not part of game");
+        });
+    
+        it("Should revert with the right error if wanna guess the code on a non existing game", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameGuessingFixture);
+
+            const tmpGame = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+            const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+            await expect(griefer.execFunction("guess",[tmpGame, tmpGuess])).to.be.revertedWith("Sender not part of game");
+        });
+
+        it("Should revert with the right error if wanna guess the code twice", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameGuessingFixture);
+
+            const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+            if ((curr_turn % 2n === 1n) && !creator_first_breaker || (curr_turn % 2n === 0n) && creator_first_breaker) {
+                await creator.execFunction("guess",[gameId, tmpGuess]);
+                await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("TODO");
+            } else {
+                await opponent.execFunction("guess",[gameId, tmpGuess]);
+                await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("TODO");
+            }
+        });
+
 
     //     // Make a guess
     //     const guess = hre.ethers.utils.formatBytes32String("1234");
