@@ -169,7 +169,8 @@ library GameFunction {
             "Not your feedback turn"
         );
 
-        if (_game.turn.feedback[_game.turn.guess] != 0) {
+        if (_game.turn.feedback[_game.turn.guess] != _feedback && 
+            _game.turn.feedback[_game.turn.guess] != 0) {
             return false;
         }
         _game.turn.feedback[_game.turn.guess] = _feedback;
