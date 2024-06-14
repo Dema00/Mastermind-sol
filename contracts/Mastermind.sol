@@ -226,6 +226,7 @@ contract Mastermind {
         Helper.validateSenderIdentity(game);
         GameFunction.setTurnCode(game,_code_hash);
         emit SecretSet(_game_id, game.curr_turn);
+        StateMachine.nextTurnState(game);
     }
 
     /**
