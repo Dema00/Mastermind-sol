@@ -161,9 +161,9 @@ describe("Mastermind", function () {
 
             let receipt;
             if (creator_first_breaker){
-                receipt = await creator.execFunction("setCodeHash",[gameId, codeHash]);
-            } else {
                 receipt = await opponent.execFunction("setCodeHash",[gameId, codeHash]);
+            } else {
+                receipt = await creator.execFunction("setCodeHash",[gameId, codeHash]);
             }
             const curr_turn = findEvent(receipt, "SecretSet").args._turn_num;
 
@@ -369,9 +369,9 @@ describe("Mastermind", function () {
             const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
 
             if (creator_first_breaker)
-                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
-            else
                 await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+            else
+                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
 
             await manager.test("SecretSet", (_game_id, curr_turn) => {
                 expect(_game_id).to.equal(gameId);
@@ -384,7 +384,7 @@ describe("Mastermind", function () {
             // Set code hash
             const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
 
-            if (!creator_first_breaker)
+            if (creator_first_breaker)
                await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Cannot set code during opponent's turn");
             else
                await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Cannot set code during opponent's turn");
@@ -410,11 +410,11 @@ describe("Mastermind", function () {
 
             const tmpCodeHash = hre.ethers.id("code"); // Assuming that this make sense
             if (creator_first_breaker) {
-                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
-                await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
-            } else {
                 await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
                 await expect(opponent.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
+            } else {
+                await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+                await expect(creator.execFunction("setCodeHash",[gameId, tmpCodeHash])).to.be.revertedWith("Wrong turn state");
             }
         });
 
@@ -428,14 +428,14 @@ describe("Mastermind", function () {
             console.log(creator_first_breaker);
 
             // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for opponent player
-            if ((curr_turn % 2n === 1n) && !creator_first_breaker || (curr_turn % 2n === 0n) && creator_first_breaker)  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
                 await creator.execFunction("guess",[gameId, tmpGuess]);
             else
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
 
             await manager.test("GuessSent", (_game_id, new_turn, guess) => {
                 expect(_game_id).to.equal(gameId);
-                expect(new_turn).to.equal(curr_turn + 1n);
+                expect(new_turn).to.equal(curr_turn);
                 expect(guess).to.equal(tmpGuess);
             });
     
