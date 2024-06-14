@@ -108,13 +108,11 @@ library GameFunction {
     }
 
     function checkMode(bool a, bool b) public pure returns (bool) {
-        // Implementing the custom truth table
-        if (a && b) return true;  // T T = T
-        if (a && !b) return false; // T F = F
-        if (!a && b) return true; // F T = T
-        if (!a && !b) return false; // F F = F
+        if (a && b) return true;
+        if (a && !b) return false; 
+        if (!a && b) return false; 
+        if (!a && !b) return true; 
         
-        // Default return statement to satisfy Solidity function signature
         return false;
     }
     
