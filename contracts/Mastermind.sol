@@ -261,6 +261,7 @@ contract Mastermind {
             emit FeedbackSent(_game_id,game.curr_turn,_feedback);
         } else {
             GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
+            emit GameWinner(_game_id, GameFunction.getCurrBreaker(game, true));
         }
     }
 
@@ -282,6 +283,7 @@ contract Mastermind {
         // else finish turn
         if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
             GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
+            emit GameWinner(_game_id, GameFunction.getCurrBreaker(game, true));
         } else {
             GameFunction.setSolution(game, _code_sol);
             StateMachine.nextTurnState(game);
@@ -312,6 +314,7 @@ contract Mastermind {
             game.afk_timer[accused] > block.timestamp ) {
             
             GameFunction.forceGameOver(game,msg.sender);
+            emit GameWinner(_game_id, msg.sender);
         }
         
         require(

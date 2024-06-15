@@ -689,10 +689,13 @@ describe("Mastermind", function () {
 
                 // TODO qui vorrei controllare che non viene fatto il feedback ma che viene chiamata 'GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));'
                 // in realta quando dice "TypeError: Cannot read properties of undefined (reading 'args')" va bene
-                await manager.test("FeedbackSent", (_game_id, _new_turn, _feedback) => {
-                    expect(_game_id).to.be.undefined;
-                    expect(_new_turn).to.be.undefined;
-                    expect(_feedback).to.be.undefined;
+                await manager.test("GameWinner", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+
+                    if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)
+                        expect(_winner).to.equal(creator.address); 
+                    else
+                        expect(_winner).to.equal(opponent.address);
                 });
             });
         });
