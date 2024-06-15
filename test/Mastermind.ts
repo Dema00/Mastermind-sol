@@ -10,6 +10,7 @@ import { HardhatEthersProvider } from "@nomicfoundation/hardhat-ethers/internal/
 import { match } from "assert";
 import { connect } from "http2";
 import { getRandomValues } from "crypto";
+import { groupEnd } from "console";
 
 function findEvent(
     receipt:  ContractTransactionReceipt | null, 
@@ -161,7 +162,7 @@ describe("Mastermind", function () {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
 
             const code = "0x01020304000000000000000000000000";
-            const salt = "0x01020304"
+            const salt = "0x10000001"
             const codeHash = hre.ethers.solidityPackedKeccak256(["bytes16","bytes4"],[code,salt]);
             let receipt;
             if (creator_first_breaker){
@@ -199,6 +200,33 @@ describe("Mastermind", function () {
         }
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
     }
+
+        // progress fixture
+        async function inGameDisputeTime() {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
+    
+                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
+                const tmpCorrCode = "0x01020304000000000000000000000000";
+                const tmpSalt = "0x10000001";
+
+                if (creator_first_breaker)
+                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+                else
+                    await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+
+                return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
+        }
+
+        // progress fixture
+        async function inGameSecondTurn() {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+    
+                // We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
+
+                return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
+        }
 
     async function notEmptyStackFixture() {
         const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
@@ -409,6 +437,22 @@ describe("Mastermind", function () {
                 });
             });
 
+            it("should allow setting the code for the second turn", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameSecondTurn);
+                // Set code hash
+                const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
+
+                if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)
+                    await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+                else
+                    await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+
+                await manager.test("SecretSet", (_game_id, _curr_turn) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_curr_turn).to.equal(curr_turn + 1n);
+                });
+            });
+
             it("Should revert with the right error if wanna set the code but is not your turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
                 // Set code hash
@@ -470,6 +514,27 @@ describe("Mastermind", function () {
                 });
         
             });
+
+            // it("should allow guessing the code from the breaker of second turn", async function () {
+            //     const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameSecondTurn);
+
+            //     // TODO vero quanto sotto?
+            //     // Plain text guess: max playable 16 code lenght with max 16*16 color
+            //     const tmpGuess = "0x04030205000000000000000000000000";
+
+            //     // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+            //     if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            //         await creator.execFunction("guess",[gameId, tmpGuess]);
+            //     else
+            //         await opponent.execFunction("guess",[gameId, tmpGuess]);
+
+            //     await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+            //         expect(_game_id).to.equal(gameId);
+            //         expect(_new_turn).to.equal(curr_turn);
+            //         expect(_guess).to.equal(tmpGuess);
+            //     });
+        
+            // });
 
             it("Should revert with the right error if wanna guess the code but is not your turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
@@ -687,8 +752,6 @@ describe("Mastermind", function () {
                 else
                     await creator.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
 
-                // TODO qui vorrei controllare che non viene fatto il feedback ma che viene chiamata 'GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));'
-                // in realta quando dice "TypeError: Cannot read properties of undefined (reading 'args')" va bene
                 await manager.test("GameWinner", (_game_id, _winner) => {
                     expect(_game_id).to.equal(gameId);
 
@@ -704,12 +767,9 @@ describe("Mastermind", function () {
             it("should allow the maker to reveal the code", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // Solution code and salt(levato)
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra?
+                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
-                const tmpSalt = "0x01020304";
-
-                //check is code_hash == keccak256(abi.encodePacked(_code,_salt));
+                const tmpSalt = "0x10000001";
 
                 if (creator_first_breaker)
                     await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
@@ -722,6 +782,51 @@ describe("Mastermind", function () {
                     expect(tmpCorrCode).to.equal(_code_sol);
                 });
             });
+
+            it("Should let win the right player if revealed code not match the hash", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
+
+                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
+                const tmpCorrCode = "0x01020304000000000000000000000000";
+                const tmpSalt = "0x01020300";
+
+                if (creator_first_breaker)
+                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+                else
+                    await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+
+                await manager.test("GameWinner", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+
+                    if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)
+                        expect(_winner).to.equal(creator.address); 
+                    else
+                        expect(_winner).to.equal(opponent.address);
+                });
+            });
+
+            it("Should revert with the right error if caller is not part of the game", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
+
+                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
+                const tmpCorrCode = "0x01020304000000000000000000000000";
+                const tmpSalt = "0x01020300";
+
+                await expect(griefer.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.be.revertedWith("Sender not part of game");
+            });
+
+            it("Should revert with the right error if revealed code is called by the breaker and not the maker", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
+
+                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
+                const tmpCorrCode = "0x01020304000000000000000000000000";
+                const tmpSalt = "0x01020300";
+
+                if (creator_first_breaker)
+                    await expect(creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.be.revertedWith("Message sender is not the codemaker");
+                else
+                    await expect(opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.be.revertedWith("Message sender is not the codemaker");
+            });
         });
 
         describe("-> function claimReward", function () {
@@ -729,7 +834,60 @@ describe("Mastermind", function () {
         });
 
         describe("-> function dispute", function () {
-            //TODO
+            it("Should let dispute the breaker e set a turn winner", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                const tmpGuess = "0x01020304000000000000000000000000";
+
+                if (creator_first_breaker)
+                    await creator.execFunction("dispute",[gameId, tmpGuess]);
+                else
+                    await opponent.execFunction("dispute",[gameId, tmpGuess]);
+
+                await manager.test("disputeSent", (_game_id, _sender) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_sender).to.not.be.undefined;
+                });
+                await manager.test("disputeWon", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_winner).to.be.oneOf([opponent.address, creator.address]);
+                });
+            });
+
+            it("Should revert with the right error if wanna despute after the dispute time", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                // We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
+
+                const tmpGuess = "0x01020304000000000000000000000000";
+
+                if (creator_first_breaker)
+                    await expect(creator.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("The turn cannot be disputed");
+                else
+                    await expect(opponent.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("The turn cannot be disputed");
+            });
+
+            it("Should revert with the right error if the maker wanna dispute his self", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                const tmpGuess = "0x01020304000000000000000000000000";
+
+                if (creator_first_breaker)
+                    await expect(opponent.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("TODO1");
+                else
+                    await expect(creator.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("TODO1");
+            });
+
+            it("Should revert with the right error if someone wanna dispute non member game", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                const tmpGuess = "0x01020304000000000000000000000000";
+
+                await expect(griefer.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("Sender not part of game");
+            });
+
         });
 
         describe("-> function accuseAFK", function () {
