@@ -196,12 +196,11 @@ library GameFunction {
      * @dev Set the solution of the current Turn
      * @param _game Game whose current Turn entry is edited  
      * @param _code Solution code
-     * @param _salt Salt of the secret_hash entry 
      */
     function setSolution(
         Game storage _game,
-        bytes16 _code,
-        bytes4 _salt
+        bytes16 _code
+        // bytes4 _salt
     ) internal {
 
         //Check game state
@@ -224,21 +223,19 @@ library GameFunction {
 
         // Set code_solution content in Turn
         _game.turn.guess = _code;
-        _game.turn.salt = _salt;
     }
 
     /**
      * @dev Check the correctness of the supplied solution code of the last Turn
      * @param _game Game whose last Turn gets checked
      * @param _code Solution code
-     * @param _salt Solution salt
      */
     function isSolCorrect(
         Game storage _game,
-        bytes16 _code,
-        bytes4 _salt
+        bytes16 _code
+        // bytes4 _salt
     ) internal view returns (bool) {
-        return _game.turn.code_hash == keccak256(abi.encodePacked(_code,_salt));
+        return _game.turn.code_hash == keccak256(abi.encodePacked(_code));
     }
 
     function setTurnState(Game storage _game, TurnState _state) internal {

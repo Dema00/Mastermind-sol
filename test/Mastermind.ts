@@ -160,7 +160,8 @@ describe("Mastermind", function () {
     async function inGameHashSetFixture() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
 
-            const codeHash = hre.ethers.id("1234");
+            const code = "0x01020304000000000000000000000000";
+            const codeHash = hre.ethers.id(code);
 
             let receipt;
             if (creator_first_breaker){
@@ -170,12 +171,12 @@ describe("Mastermind", function () {
             }
             const curr_turn = findEvent(receipt, "SecretSet").args._turn_num;
 
-        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn };
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
     }
 
     // progress fixture
     async function inGameRevealing() {
-        const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+        const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
         // TODO vero quanto sotto?
         // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -196,7 +197,7 @@ describe("Mastermind", function () {
                 // TODO mi serve salvare ogni singola coppia guess e feedback?
             }
         }
-        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn };
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
     }
 
     async function notEmptyStackFixture() {
@@ -450,7 +451,7 @@ describe("Mastermind", function () {
         
         describe("-> function guess", function () {
             it("should allow guessing the code from the breaker", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -471,7 +472,7 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna guess the code but is not your turn", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
                 // Set guess code
                 const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
 
@@ -483,14 +484,14 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna guess the code on a non member game", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
                 // Set code hash
                 const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
                 await expect(griefer.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Sender not part of game");
             });
         
             it("Should revert with the right error if wanna guess the code on a non existing game", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 const tmpGame = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
                 const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
@@ -498,7 +499,7 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna guess the code twice", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
                 if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker) {
@@ -513,7 +514,7 @@ describe("Mastermind", function () {
 
         describe("-> function giveFeedback", function () {
             it("should allow the maker feedback the breaker guess", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -546,7 +547,7 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna feedback but is not your turn", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -573,7 +574,7 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna feedback on a non member game", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -597,7 +598,7 @@ describe("Mastermind", function () {
             });
         
             it("Should revert with the right error if wanna feedback on a non existing game", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 const tmpGame = "0x0000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
                 const tmpFeeedback = "0x0103";
@@ -605,7 +606,7 @@ describe("Mastermind", function () {
             });
 
             it("Should revert with the right error if wanna feedback twice", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -635,7 +636,7 @@ describe("Mastermind", function () {
             });
 
             it("Should go in the right game state if submit different feedback for the same guess", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameHashSetFixture);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
                 // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -698,20 +699,20 @@ describe("Mastermind", function () {
 
         describe("-> function revealCode", function () {
             it("should allow the maker to reveal the code", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn } = await loadFixture(inGameRevealing);
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // Solution code and salt
+                // Solution code and salt(levato)
                 // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
                 const tmpCorrCodeTest = "0x00000000000000000000000001020304";
-                const tmpSalt = "0x00000000";
+
+                //check is code_hash == keccak256(abi.encodePacked(_code,_salt));
 
                 if (creator_first_breaker)
-                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode]);
                 else
-                    await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+                    await creator.execFunction("revealCode",[gameId, tmpCorrCode]);
 
-                // TODO attualmente fallisce perche il salt non e' corretto. da dove lo prendo?
                 await manager.test("TurnOver", (_game_id, _turn_num, _code_sol) => {
                     expect(_game_id).to.equal(gameId);
                     expect(curr_turn).to.equal(_turn_num - 1n);
