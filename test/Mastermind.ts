@@ -161,8 +161,8 @@ describe("Mastermind", function () {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
 
             const code = "0x01020304000000000000000000000000";
-            const codeHash = hre.ethers.id(code);
-
+            const salt = "0x01020304"
+            const codeHash = hre.ethers.solidityPackedKeccak256(["bytes16","bytes4"],[code,salt]);
             let receipt;
             if (creator_first_breaker){
                 receipt = await opponent.execFunction("setCodeHash",[gameId, codeHash]);
@@ -704,18 +704,18 @@ describe("Mastermind", function () {
                 // Solution code and salt(levato)
                 // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
-                const tmpCorrCodeTest = "0x00000000000000000000000001020304";
+                const tmpSalt = "0x01020304";
 
                 //check is code_hash == keccak256(abi.encodePacked(_code,_salt));
 
                 if (creator_first_breaker)
-                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode]);
+                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
                 else
-                    await creator.execFunction("revealCode",[gameId, tmpCorrCode]);
+                    await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
 
                 await manager.test("TurnOver", (_game_id, _turn_num, _code_sol) => {
                     expect(_game_id).to.equal(gameId);
-                    expect(curr_turn).to.equal(_turn_num - 1n);
+                    expect(curr_turn).to.equal(_turn_num);
                     expect(tmpCorrCode).to.equal(_code_sol);
                 });
             });

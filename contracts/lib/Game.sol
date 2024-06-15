@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./GameState.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Mastermind Game Library
@@ -232,10 +233,10 @@ library GameFunction {
      */
     function isSolCorrect(
         Game storage _game,
-        bytes16 _code
-        // bytes4 _salt
+        bytes16 _code,
+        bytes4 _salt
     ) internal view returns (bool) {
-        return _game.turn.code_hash == keccak256(abi.encodePacked(_code));
+        return _game.turn.code_hash == keccak256(abi.encodePacked(_code,_salt));
     }
 
     function setTurnState(Game storage _game, TurnState _state) internal {

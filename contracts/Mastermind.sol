@@ -271,8 +271,8 @@ contract Mastermind {
      */
     function revealCode(
         bytes32 _game_id,
-        bytes16 _code_sol
-        // bytes4 _salt
+        bytes16 _code_sol,
+        bytes4 _salt
     ) public {
         Game storage game = games[_game_id];
         Helper.validateSenderIdentity(game);
@@ -280,11 +280,9 @@ contract Mastermind {
         // If the revealed code or salt is wrong instant game over
         // CodeMaker loses its stake forever
         // else finish turn
-        if(!GameFunction.isSolCorrect(game, _code_sol)) {
-    console.log("no");
+        if(!GameFunction.isSolCorrect(game, _code_sol, _salt)) {
             GameFunction.forceGameOver(game,GameFunction.getCurrBreaker(game, true));
         } else {
-    console.log("si");
             GameFunction.setSolution(game, _code_sol);
             StateMachine.nextTurnState(game);
             GameFunction.setTurnLockTime(game, t_disp);
