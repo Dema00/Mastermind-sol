@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import "hardhat/console.sol";
+
 /**
  * @dev Enum representing the states of a Mastermind game:
  *      -   searching_opponent: no opp specified
@@ -165,7 +167,9 @@ library StateMachine {
 
         delete _game.afk_timer[msg.sender];
 
-        if(_game.turn.curr_cc == _game.code_len) {
+        if(_game.turn.curr_cc == _game.code_len &&
+            _game.turn.state != TurnState.revealing_code
+        ) {
             _game.turn.state = TurnState.revealing_code;
         } else if(_game.turn.state == TurnState.defining_secret) {
             _game.turn.state = TurnState.guessing;
@@ -182,7 +186,8 @@ library StateMachine {
         ) {
             _game.turn.state = TurnState.guessing;
         } else if(_game.turn.state == TurnState.revealing_code) {
-            _game.turn.state == TurnState.turn_over;
+            _game.turn.state = TurnState.turn_over;
+        } else {
         }
     }
 }

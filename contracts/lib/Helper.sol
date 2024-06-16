@@ -29,11 +29,27 @@ library Helper {
         return keccak256(abi.encodePacked(block.timestamp,msg.sender));
     }
 
-    function validateSenderIdentity(Game storage _game) internal view {
+    function senderIsPartOfGame(Game storage _game) internal view {
         // Check identity
         require(_game.opponent == msg.sender
             || _game.creator == msg.sender,
             "Sender not part of game"
+        );
+    }
+
+    function senderIsMaker(Game storage _game) internal view {
+        //Check sender identity
+        require(
+            GameFunction.getCurrBreaker(_game, false) == msg.sender,
+            "Message sender is not the codemaker"
+        );
+    }
+
+    function senderIsBreaker(Game storage _game) internal view {
+        //Check sender identity
+        require(
+            GameFunction.getCurrBreaker(_game, true) == msg.sender,
+            "Message sender is not the codebreaker"
         );
     }
 

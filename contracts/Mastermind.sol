@@ -223,7 +223,7 @@ contract Mastermind {
      */
     function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
         GameFunction.setTurnCode(game,_code_hash);
         emit SecretSet(_game_id, game.curr_turn);
         StateMachine.nextTurnState(game);
@@ -236,7 +236,7 @@ contract Mastermind {
      */    
     function guess(bytes32 _game_id, bytes16 _guess) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
         GameFunction.addGuess(game, _guess);
 
         // Update turn state
@@ -254,7 +254,7 @@ contract Mastermind {
         bytes2 _feedback
     ) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
         //If you submit different feedback for the same guess you lose since you cheated
         if (GameFunction.addFeedback(game, _feedback)) {
             StateMachine.nextTurnState(game);
@@ -276,7 +276,8 @@ contract Mastermind {
         bytes4 _salt
     ) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
+        Helper.senderIsMaker(game);
 
         // If the revealed code or salt is wrong instant game over
         // CodeMaker loses its stake forever
@@ -301,7 +302,7 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
 
         address accused;
         if(msg.sender == game.creator) {
@@ -330,7 +331,8 @@ contract Mastermind {
         bytes16 _guess
     ) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
+        Helper.senderIsBreaker(game);
         require(
             block.timestamp < game.turn.lock_time,
             "The turn cannot be disputed"
@@ -357,7 +359,7 @@ contract Mastermind {
         bytes32 _game_id
     ) public {
         Game storage game = games[_game_id];
-        Helper.validateSenderIdentity(game);
+        Helper.senderIsPartOfGame(game);
         Helper.accuseAFK(game,t_afk);
     }
 }

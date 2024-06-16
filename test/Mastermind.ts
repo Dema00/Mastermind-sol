@@ -442,10 +442,12 @@ describe("Mastermind", function () {
                 // Set code hash
                 const tmpCodeHash = "0x1000000000000000000000000000000000000000000000000000000000000000"; // Assuming that this make sense
 
-                if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)
+                if ((curr_turn % 2n === 0n) && creator_first_breaker || (curr_turn % 2n === 1n) && !creator_first_breaker){
                     await opponent.execFunction("setCodeHash",[gameId, tmpCodeHash]);
-                else
+                }
+                else{
                     await creator.execFunction("setCodeHash",[gameId, tmpCodeHash]);
+                }
 
                 await manager.test("SecretSet", (_game_id, _curr_turn) => {
                     expect(_game_id).to.equal(gameId);
@@ -820,12 +822,15 @@ describe("Mastermind", function () {
 
                 // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
-                const tmpSalt = "0x01020300";
+                const tmpSalt = "0x01020304";
+                
 
-                if (creator_first_breaker)
+                if (creator_first_breaker){
                     await expect(creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.be.revertedWith("Message sender is not the codemaker");
-                else
+                }
+                else {
                     await expect(opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.be.revertedWith("Message sender is not the codemaker");
+                }
             });
         });
 
@@ -875,9 +880,9 @@ describe("Mastermind", function () {
                 const tmpGuess = "0x01020304000000000000000000000000";
 
                 if (creator_first_breaker)
-                    await expect(opponent.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("TODO1");
+                    await expect(opponent.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("Message sender is not the codebreaker");
                 else
-                    await expect(creator.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("TODO1");
+                    await expect(creator.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("Message sender is not the codebreaker");
             });
 
             it("Should revert with the right error if someone wanna dispute non member game", async function () {
