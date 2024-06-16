@@ -134,7 +134,7 @@ struct Turn {
 library StateMachine {
     function nextState(Game storage _game) internal {
         if(_game.state == GameState.playing) {
-            _game.state == GameState.completed;
+            _game.state = GameState.completed;
         }
 
         delete _game.afk_timer[msg.sender];
