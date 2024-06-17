@@ -179,7 +179,7 @@ describe("Mastermind", function () {
     async function inGameRevealing() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-        // TODO vero quanto sotto?
+        // TODO vero quanto sotto? ADD test per bound del game e hash dopo il reveal propriamente usato e non troppo grande come si are definito il game
         // Plain text guess: max playable 16 code lenght with max 16*16 color
         const tmpGuess = "0x04030205000000000000000000000000";
         const tmpFeeedback = "0x0003";
@@ -189,13 +189,11 @@ describe("Mastermind", function () {
             for (let i = 0; i < 10; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                // TODO mi serve salvare ogni singola coppia guess e feedback? no perche viene checkato ogni turno se vanno bene e la dispute c'e dopo il code reveal
             }
         }else{
             for (let i = 0; i < 10; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                // TODO mi serve salvare ogni singola coppia guess e feedback?
             }
         }
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
@@ -205,7 +203,7 @@ describe("Mastermind", function () {
     async function inGameDisputeTime() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-            // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
+            // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione si ADD da documntare nella relazione e gestito dal client
             const tmpCorrCode = "0x01020304000000000000000000000000";
             const tmpSalt = "0x10000001";
 
@@ -250,7 +248,6 @@ describe("Mastermind", function () {
     async function inGameSecondRevealing() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
-        // TODO vero quanto sotto?
         // Plain text guess: max playable 16 code lenght with max 16*16 color
         const tmpGuess = "0x04030205000000000000000000000000";
         const tmpFeeedback = "0x0003";
@@ -260,13 +257,11 @@ describe("Mastermind", function () {
             for (let i = 0; i < 10; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                // TODO mi serve salvare ogni singola coppia guess e feedback? no perche viene checkato ogni turno se vanno bene e la dispute c'e dopo il code reveal
             }
         }else{
             for (let i = 0; i < 10; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                // TODO mi serve salvare ogni singola coppia guess e feedback?
             }
         }
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 };
@@ -399,7 +394,7 @@ describe("Mastermind", function () {
             });
         });
 
-        //TODO aggiungi evento per fare emit StakeSent, come sopra ma quando il gioco piu avanti caricando un fixture di in un momento a caso
+        //TODO aggiungi evento per fare emit StakeSent, come sopra ma quando il gioco piu avanti caricando un fixture di in un momento a caso ADD dovrebbe andare gia
 
         it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
             const { manager, creator, opponent, gameId } = await loadFixture(GameCreatedFixture);
@@ -412,11 +407,7 @@ describe("Mastermind", function () {
                 expect(_opp_stake).to.equal(hre.ethers.parseEther("2.0"));
             });
 
-            //TODO pending return deve essere controllato che sia aumentato, qui e in ogni StakeFailed
-
-            /*const stakeEvent = findEventInGame(receipt, "StakeFailed", gameId);
-            expect(stakeEvent.args._game_id).to.equal(gameId);
-            expect(stakeEvent.args._opp_stake).to.equal(hre.ethers.parseEther("2.0"));*/            
+            //TODO pending return deve essere controllato che sia aumentato, qui e in ogni StakeFailed ADD non posso a meno di withdrow da aggiungere enlla relazione
         });
         
         it("Should revert with the right error if wanna stack on non existing game", async function () {
@@ -543,7 +534,6 @@ describe("Mastermind", function () {
             it("Should allow guessing the code from the breaker", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030205000000000000000000000000";
 
@@ -564,7 +554,6 @@ describe("Mastermind", function () {
             it("Should allow guessing the code from the breaker of second turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030303000000000000000000000000";
 
@@ -626,7 +615,6 @@ describe("Mastermind", function () {
             it("Should allow the maker feedback the breaker guess", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030205000000000000000000000000";
 
@@ -659,7 +647,6 @@ describe("Mastermind", function () {
             it("Should allow feedback the code from the maker of second turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030303000000000000000000000000";
                 const tmpFeeedback = "0x0000";
@@ -668,11 +655,9 @@ describe("Mastermind", function () {
                 if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
                     await creator.execFunction("guess",[gameId, tmpGuess]);
                     await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
                 }else{
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
                     await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
                 }
                 await manager.test("FeedbackSent", (_game_id, _new_turn, _feedback) => {
                     expect(_game_id).to.equal(gameId);
@@ -684,7 +669,6 @@ describe("Mastermind", function () {
             it("Should allow feedback the code from the maker of second turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030303000000000000000000000000";
                 const tmpFeeedback = "0x0000";
@@ -693,11 +677,9 @@ describe("Mastermind", function () {
                 if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
                     await creator.execFunction("guess",[gameId, tmpGuess]);
                     await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
                 }else{
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
                     await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
                 }
                 await manager.test("FeedbackSent", (_game_id, _new_turn, _feedback) => {
                     expect(_game_id).to.equal(gameId);
@@ -706,34 +688,32 @@ describe("Mastermind", function () {
                 });
             });
 
-            // TODO posso assegnare direttamente la vittoria perche se il maker onesto ok. se maker si e' sbagliato vince l'altro, ergo non importa il code reveal
-            it("Should let win the breaker if the feedback means exact match", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
+            // // TODO posso assegnare direttamente la vittoria perche se il maker onesto ok. se maker si e' sbagliato vince l'altro, ergo non importa il code reveal
+            // it("Should let win the breaker if the feedback means exact match", async function () {
+            //     const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
-                // TODO vero quanto sotto?
-                // Plain text guess: max playable 16 code lenght with max 16*16 color
-                const tmpGuess = "0x02020202000000000000000000000000";
-                const tmpFeeedback = "0x0400";
+            //     // Plain text guess: max playable 16 code lenght with max 16*16 color
+            //     const tmpGuess = "0x02020202000000000000000000000000";
+            //     const tmpFeeedback = "0x0400";
 
-                // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
-                if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
-                    await creator.execFunction("guess",[gameId, tmpGuess]);
-                    await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
-                }else{
-                    await opponent.execFunction("guess",[gameId, tmpGuess]);
-                    await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-                    // TODO mi serve salvare ogni singola coppia guess e feedback?
-                }
-                await manager.test("GameWinner", (_game_id, _winner) => {
-                    expect(_game_id).to.equal(gameId);
+            //     // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+            //     if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            //         await creator.execFunction("guess",[gameId, tmpGuess]);
+            //         await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            //     }else{
+            //         await opponent.execFunction("guess",[gameId, tmpGuess]);
+            //         await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            //     }
+            //     // TODO feedbackSand non Gamewin, quello solo incaso di cheat
+            //     await manager.test("GameWinner", (_game_id, _winner) => {
+            //         expect(_game_id).to.equal(gameId);
 
-                    if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
-                        expect(_winner).to.equal(creator.address); 
-                    else
-                        expect(_winner).to.equal(opponent.address);
-                });
-            });
+            //         if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
+            //             expect(_winner).to.equal(creator.address); 
+            //         else
+            //             expect(_winner).to.equal(opponent.address);
+            //     });
+            // });
 
             it("Should revert with the right error if wanna feedback but is not your turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
@@ -765,7 +745,6 @@ describe("Mastermind", function () {
             it("Should revert with the right error if wanna feedback on a non member game", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030205000000000000000000000000";
 
@@ -797,7 +776,6 @@ describe("Mastermind", function () {
             it("Should revert with the right error if wanna feedback twice", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030205000000000000000000000000";
 
@@ -827,7 +805,6 @@ describe("Mastermind", function () {
             it("Should go in the right game state if submit different feedback for the same guess", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
-                // TODO vero quanto sotto?
                 // Plain text guess: max playable 16 code lenght with max 16*16 color
                 const tmpGuess = "0x04030205000000000000000000000000";
 
@@ -891,7 +868,6 @@ describe("Mastermind", function () {
             it("Should allow the maker to reveal the code", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
                 const tmpSalt = "0x10000001";
 
@@ -910,7 +886,6 @@ describe("Mastermind", function () {
             it("Should allow the second maker to reveal the code and end the game", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondRevealing);
 
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x02020202000000000000000000000000";
                 const tmpSalt = "0x20000002";
 
@@ -926,10 +901,10 @@ describe("Mastermind", function () {
                 });
 
                 // We can increase the time in Hardhat Network by t_disp(hardcodec)
-                const futureTime = (await time.latest()) + 60;
+                const futureTime = (await time.latest()) + 30;
                 await time.increaseTo(futureTime);
-                // TODO test del tempo per il dispute()? cosa succede se faccio prima del tempo il claim?
-                // TODO come arrivo a "Cannot get winner while game is not completed" dentro GameFunction.getWinner?
+                // TODO test del tempo per il dispute()? cosa succede se faccio prima del tempo il claim? ADD devo farci i test
+                // TODO come arrivo a "Cannot get winner while game is not completed" dentro GameFunction.getWinner? ADD passando da claimReward, non dopo da lispute ma se viene chiamato il claim a caso
 
                 await manager.test("GameWinner", (_game_id, _winner) => {
                     expect(_game_id).to.equal(gameId);
@@ -940,7 +915,6 @@ describe("Mastermind", function () {
             it("Should let win the right player if revealed code not match the hash", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
                 const tmpSalt = "0x01000300";
 
@@ -962,7 +936,6 @@ describe("Mastermind", function () {
             it("Should revert with the right error if caller is not part of the game", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
                 const tmpSalt = "0x01020300";
 
@@ -972,7 +945,6 @@ describe("Mastermind", function () {
             it("Should revert with the right error if revealed code is called by the breaker and not the maker", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
-                // TODO come faccio a dire se gli zeri di troppo sono a destra o a sinistra? convenzione?
                 const tmpCorrCode = "0x01020304000000000000000000000000";
                 const tmpSalt = "0x01000004";
                 
