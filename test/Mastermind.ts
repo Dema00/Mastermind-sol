@@ -245,7 +245,7 @@ describe("Mastermind", function () {
     }
 
     // progress fixture
-    async function inGameSecondRevealing() {
+    async function inGameEnding() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
 
         // Plain text guess: max playable 16 code lenght with max 16*16 color
@@ -264,6 +264,15 @@ describe("Mastermind", function () {
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
         }
+
+        const tmpCorrCode = "0x02020202000000000000000000000000";
+        const tmpSalt = "0x20000002";
+
+        if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
+            await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+        else
+            await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 };
     }
 
@@ -301,15 +310,27 @@ describe("Mastermind", function () {
             expect(gameId).to.not.be.undefined;
         });
 
-        it("Should revert with the right error if called upon itself", async function () {
+        it("Should revert with the right error if define the opponent as itself", async function () {
             const { manager, creator } = await loadFixture(deployMastermindFixture);
 
-            expect(creator.execFunction("createGame",[
+            await expect(creator.execFunction("createGame",[
                 creator.address, // Specific opponent
                 4, // Code length
                 8, // Number of symbols
                 10 // Bonus points
             ])).to.be.revertedWith("The opponent cannot be the game creator");
+        });
+
+        it("Should revert with the right error if code lenght exceeds", async function () {
+            const { manager, creator } = await loadFixture(deployMastermindFixture);
+
+            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,17,8,10])).to.be.revertedWith("TODO");
+        });
+
+        it("Should revert with the right error if number of symbols exceeds", async function () {
+            const { manager, creator } = await loadFixture(deployMastermindFixture);
+
+            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,4,257,10])).to.be.revertedWith("TODO");
         });
     });
     describe("Join Game", function () {
@@ -688,33 +709,6 @@ describe("Mastermind", function () {
                 });
             });
 
-            // // TODO posso assegnare direttamente la vittoria perche se il maker onesto ok. se maker si e' sbagliato vince l'altro, ergo non importa il code reveal
-            // it("Should let win the breaker if the feedback means exact match", async function () {
-            //     const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
-
-            //     // Plain text guess: max playable 16 code lenght with max 16*16 color
-            //     const tmpGuess = "0x02020202000000000000000000000000";
-            //     const tmpFeeedback = "0x0400";
-
-            //     // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
-            //     if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
-            //         await creator.execFunction("guess",[gameId, tmpGuess]);
-            //         await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-            //     }else{
-            //         await opponent.execFunction("guess",[gameId, tmpGuess]);
-            //         await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
-            //     }
-            //     // TODO feedbackSand non Gamewin, quello solo incaso di cheat
-            //     await manager.test("GameWinner", (_game_id, _winner) => {
-            //         expect(_game_id).to.equal(gameId);
-
-            //         if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
-            //             expect(_winner).to.equal(creator.address); 
-            //         else
-            //             expect(_winner).to.equal(opponent.address);
-            //     });
-            // });
-
             it("Should revert with the right error if wanna feedback but is not your turn", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
@@ -883,35 +877,6 @@ describe("Mastermind", function () {
                 });
             });
 
-            it("Should allow the second maker to reveal the code and end the game", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondRevealing);
-
-                const tmpCorrCode = "0x02020202000000000000000000000000";
-                const tmpSalt = "0x20000002";
-
-                if (creator_first_breaker)
-                    await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
-                else
-                    await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
-
-                await manager.test("TurnOver", (_game_id, _turn_num, _code_sol) => {
-                    expect(_game_id).to.equal(gameId);
-                    expect(new_turn).to.equal(_turn_num);
-                    expect(tmpCorrCode).to.equal(_code_sol);
-                });
-
-                // We can increase the time in Hardhat Network by t_disp(hardcodec)
-                const futureTime = (await time.latest()) + 30;
-                await time.increaseTo(futureTime);
-                // TODO test del tempo per il dispute()? cosa succede se faccio prima del tempo il claim? ADD devo farci i test
-                // TODO come arrivo a "Cannot get winner while game is not completed" dentro GameFunction.getWinner? ADD passando da claimReward, non dopo da lispute ma se viene chiamato il claim a caso
-
-                await manager.test("GameWinner", (_game_id, _winner) => {
-                    expect(_game_id).to.equal(gameId);
-                    expect(_winner).to.be.oneOf([opponent.address, creator.address]);
-                });
-            });
-
             it("Should let win the right player if revealed code not match the hash", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
@@ -959,7 +924,37 @@ describe("Mastermind", function () {
         });
 
         describe("-> function claimReward", function () {
-            //TODO
+            it("Should allow player to claim the funds to be leter withdrowable", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameEnding);
+
+                // We can increase the time in Hardhat Network by t_disp(hardcoded)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
+                // TODO test del tempo per il dispute()? cosa succede se faccio prima del tempo il claim? ADD devo farci i test
+                // TODO come arrivo a "Cannot get winner while game is not completed" dentro GameFunction.getWinner? ADD passando da claimReward, non dopo da lispute ma se viene chiamato il claim a caso
+
+
+                await creator.execFunction("claimReward",[gameId]);
+
+                await manager.test("GameWinner", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_winner).to.be.oneOf([opponent.address, creator.address]);
+                });
+            });
+
+            it("Should revert with the right error if wanna claim reward during dispute time", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameEnding);
+
+                await expect(creator.execFunction("claimReward",[gameId])).to.be.revertedWith("The reward cannot be claimed yet");
+                await expect(opponent.execFunction("claimReward",[gameId])).to.be.revertedWith("The reward cannot be claimed yet");
+            });
+
+            it("Should revert with the right error if wanna claim reward befor it is possible", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameSecondBreakerTurn);
+
+                await expect(creator.execFunction("claimReward",[gameId])).to.be.revertedWith("Cannot get winner while game is not completed");
+                await expect(opponent.execFunction("claimReward",[gameId])).to.be.revertedWith("Cannot get winner while game is not completed");
+            });
         });
 
         describe("-> function dispute", function () {
@@ -981,6 +976,26 @@ describe("Mastermind", function () {
                     expect(_game_id).to.equal(gameId);
                     expect(_winner).to.be.oneOf([opponent.address, creator.address]);
                 });
+            });
+
+            it("Should let win the dispute to the other player if the caller use an invalid guess", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                const tmpGuess = "0x01020300000000030000000000000000";
+
+                if (creator_first_breaker){
+                    creator.execFunction("dispute",[gameId, tmpGuess]);
+                    await manager.test("disputeWon", (_game_id, _winner) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_winner).to.equal(opponent.address);
+                    });
+                } else {
+                    opponent.execFunction("dispute",[gameId, tmpGuess]);
+                    await manager.test("disputeWon", (_game_id, _winner) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_winner).to.equal(creator.address);
+                    });
+                }
             });
 
             it("Should revert with the right error if wanna despute after the dispute time", async function () {
