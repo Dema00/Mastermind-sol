@@ -236,6 +236,14 @@ library GameFunction {
         bytes16 _code,
         bytes4 _salt
     ) internal view returns (bool) {
+
+        //Check if the symbol value is superior to the symbol amt
+        for(uint8 i = 0; i < _game.code_len; i++) {
+            if(uint8(bytes1(_code >> 8*i)) > _game.code_symbols_amt) {
+                return false;
+            }
+        }
+
         return _game.turn.code_hash == keccak256(abi.encodePacked(_code,_salt));
     }
 
