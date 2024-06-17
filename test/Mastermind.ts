@@ -324,13 +324,13 @@ describe("Mastermind", function () {
         it("Should revert with the right error if code lenght exceeds", async function () {
             const { manager, creator } = await loadFixture(deployMastermindFixture);
 
-            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,17,8,10])).to.be.revertedWith("TODO");
+            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,17,8,10])).to.be.revertedWith("The code cannot be longer than 16");
         });
 
         it("Should revert with the right error if number of symbols exceeds", async function () {
             const { manager, creator } = await loadFixture(deployMastermindFixture);
 
-            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,4,257,10])).to.be.revertedWith("TODO");
+            await expect(creator.execFunction("createGame",[hre.ethers.ZeroAddress,4,41,10])).to.be.revertedWith("The code cannot have more than 40 colors");
         });
     });
     describe("Join Game", function () {
@@ -924,7 +924,7 @@ describe("Mastermind", function () {
         });
 
         describe("-> function claimReward", function () {
-            it("Should allow player to claim the funds to be leter withdrowable", async function () {
+            it("Should allow player to claim the funds to later be withdrawable", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameEnding);
 
                 // We can increase the time in Hardhat Network by t_disp(hardcoded)
@@ -936,9 +936,9 @@ describe("Mastermind", function () {
 
                 await creator.execFunction("claimReward",[gameId]);
 
-                await manager.test("GameWinner", (_game_id, _winner) => {
+                await manager.test("RewardClaimed", (_game_id, _claimer) => {
                     expect(_game_id).to.equal(gameId);
-                    expect(_winner).to.be.oneOf([opponent.address, creator.address]);
+                    expect(_claimer).to.be.oneOf([opponent.address, creator.address]);
                 });
             });
 
@@ -978,26 +978,6 @@ describe("Mastermind", function () {
                 });
             });
 
-            it("Should let win the dispute to the other player if the caller use an invalid guess", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
-
-                const tmpGuess = "0x01020300000000030000000000000000";
-
-                if (creator_first_breaker){
-                    creator.execFunction("dispute",[gameId, tmpGuess]);
-                    await manager.test("disputeWon", (_game_id, _winner) => {
-                        expect(_game_id).to.equal(gameId);
-                        expect(_winner).to.equal(opponent.address);
-                    });
-                } else {
-                    opponent.execFunction("dispute",[gameId, tmpGuess]);
-                    await manager.test("disputeWon", (_game_id, _winner) => {
-                        expect(_game_id).to.equal(gameId);
-                        expect(_winner).to.equal(creator.address);
-                    });
-                }
-            });
-
             it("Should revert with the right error if wanna despute after the dispute time", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
 
@@ -1030,6 +1010,26 @@ describe("Mastermind", function () {
                 const tmpGuess = "0x01020304000000000000000000000000";
 
                 await expect(griefer.execFunction("dispute",[gameId, tmpGuess])).to.be.revertedWith("Sender not part of game");
+            });
+
+            it("Should let win the dispute to the other player if the caller use an invalid guess", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                const tmpGuess = "0x01020300000000030000000000000000";
+
+                if (creator_first_breaker){
+                    creator.execFunction("dispute",[gameId, tmpGuess]);
+                    await manager.test("disputeWon", (_game_id, _winner) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_winner).to.equal(opponent.address);
+                    });
+                } else {
+                    opponent.execFunction("dispute",[gameId, tmpGuess]);
+                    await manager.test("disputeWon", (_game_id, _winner) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_winner).to.equal(creator.address);
+                    });
+                }
             });
 
         });

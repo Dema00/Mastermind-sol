@@ -170,11 +170,13 @@ library GameFunction {
             "Not your feedback turn"
         );
 
-        if (_game.turn.feedback[_game.turn.guess] != _feedback && 
+        if (bytes2(_game.turn.feedback[_game.turn.guess]) != _feedback && 
             _game.turn.feedback[_game.turn.guess] != 0) {
             return false;
         }
-        _game.turn.feedback[_game.turn.guess] = _feedback;
+
+        bytes3 _feedback_flagged = bytes3(_feedback) | 0x000001;
+        _game.turn.feedback[_game.turn.guess] = _feedback_flagged;
         _game.turn.curr_cc = uint8(bytes1(_feedback));
         return true;
     }
@@ -269,9 +271,16 @@ library GameFunction {
     }
 
     function hasMakerCheated(Game storage _game, bytes16 _guess) internal view returns(bool) {
-        bytes2 feedback = _game.turn.feedback[_guess];
+        bytes3 feedback = _game.turn.feedback[_guess];
+
         uint8 stored_cc = uint8(bytes1(feedback));
         uint8 stored_nc = uint8(bytes1(feedback >> 8));
+
+        uint8 exist_flag = uint8(bytes1(feedback >> 16));
+
+        if(exist_flag == 0) {
+            return false;
+        }
 
         bytes16 sol = _game.turn.guess;
 
@@ -299,6 +308,8 @@ library GameFunction {
                 missing = missing & ~(uint256(1) << uint8(bytes1(sol << 8*i)));
             }
         }
+
+        console.log("CC",cc,"NC",nc);
 
         return !((cc == stored_cc) && (nc == stored_nc));
     }

@@ -76,6 +76,8 @@ contract Mastermind {
 
     event disputeWon( bytes32 indexed _game_id, address _winner);
 
+    event RewardClaimed (bytes32 indexed _game_id, address _claimer);
+
 
     //-----------------
     //     ERRORS
@@ -106,6 +108,12 @@ contract Mastermind {
     ) 
     public returns(bytes32) {
         require(_opponent != msg.sender, "The opponent cannot be the game creator");
+
+        require(_code_len <= 16, "The code cannot be longer than 16");
+
+        require(_code_symbols_amt <= 40, "The code cannot have more than 40 colors");
+
+        
         
         // Get game id
         bytes32 game_id = Helper.create_game_uuid();
@@ -322,7 +330,9 @@ contract Mastermind {
             block.timestamp > game.turn.lock_time,
             "The reward cannot be claimed yet"
         );
-        pending_return[GameFunction.getWinner(game)] += (game.stake * 2);
+        address winner = GameFunction.getWinner(game);
+        pending_return[winner] += (game.stake * 2);
+        emit RewardClaimed(_game_id, winner);
         delete(games[_game_id]);
     }
 
@@ -331,6 +341,9 @@ contract Mastermind {
         bytes16 _guess
     ) public {
         Game storage game = games[_game_id];
+
+        /* console.log(game.creator);
+        console.logBytes16(_guess); */
         Helper.senderIsPartOfGame(game);
         Helper.senderIsBreaker(game);
         require(
