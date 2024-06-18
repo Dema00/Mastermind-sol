@@ -50,6 +50,9 @@ library LobbyFunction {
     /**
      * @dev Validate and execute a staking operation
      * @param _game Game being staked
+     * @return residual_stake creator's stake in case it gets deleted, i do this because i use it
+     *                         as a "Stake successful" flag and check if it is 0
+     *                         in the state machine to advance to the next state
      */
     function manageStake(
         Game storage _game
@@ -85,7 +88,7 @@ library LobbyFunction {
             "Not message sender staking turn"
         );
 
-        uint game_stake = _game.stake;
+        uint residual_stake = _game.stake;
 
         // If you are the creator the games needs to be in waiting_stake
         // If you are the opponent the games needs to be in confirming_stake
@@ -98,6 +101,6 @@ library LobbyFunction {
 
         StateMachine.nextState(_game);
 
-        return game_stake;
+        return residual_stake;
     }
 }
