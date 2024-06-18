@@ -180,7 +180,7 @@ contract Mastermind {
     payable public {
         Game storage game = games[_game_id];
         
-        LobbyFunction.manageStake(game);
+        uint residual_stake = LobbyFunction.manageStake(game);
 
         if (game.state == GameState.ready) {
             emit StakeSuccessful(_game_id, msg.value);
@@ -188,7 +188,7 @@ contract Mastermind {
             emit GameStart(_game_id, game.creator_is_first_breaker);
         } else if (game.state == GameState.waiting_stake) {
             emit StakeFailed(_game_id, msg.value);
-            pending_return[game.creator] += game.stake;
+            pending_return[game.creator] += residual_stake;
             pending_return[game.opponent] += msg.value;
         } else {
             emit StakeSent(_game_id, game.stake);

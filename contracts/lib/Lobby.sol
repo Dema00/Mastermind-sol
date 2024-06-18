@@ -53,7 +53,7 @@ library LobbyFunction {
      */
     function manageStake(
         Game storage _game
-    ) internal{
+    ) internal returns(uint){
 
         // Check existence
         require(
@@ -85,6 +85,8 @@ library LobbyFunction {
             "Not message sender staking turn"
         );
 
+        uint game_stake = _game.stake;
+
         // If you are the creator the games needs to be in waiting_stake
         // If you are the opponent the games needs to be in confirming_stake
         if (_game.state == GameState.waiting_stake) {
@@ -95,5 +97,7 @@ library LobbyFunction {
         }
 
         StateMachine.nextState(_game);
+
+        return game_stake;
     }
 }
