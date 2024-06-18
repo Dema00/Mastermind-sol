@@ -241,7 +241,7 @@ library GameFunction {
 
         //Check if the symbol value is superior to the symbol amt
         for(uint8 i = 0; i < _game.code_len; i++) {
-            if(uint8(bytes1(_code >> 8*i)) > _game.code_symbols_amt) {
+            if(uint8(bytes1(_code << 8*i)) > _game.code_symbols_amt) {
                 return false;
             }
         }
