@@ -86,9 +86,6 @@ describe("Mastermind", function () {
 
         const manager = new ContractTestManager(mastermind, await mastermind.getAddress());
 
-        //TODO Set the balances of the players to 200. the new balance for the given address, in wei(?)
-        // await setBalance(p1.address, 200n ** 18n );
-
         const creator = manager.newActor(p1);
         const opponent = manager.newActor(p2);
         const griefer = manager.newActor(p3);
@@ -337,7 +334,7 @@ describe("Mastermind", function () {
     async function notEmptyStackFixture() {
         const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
 
-        const stakeAmountA = hre.ethers.parseEther("1000.0");
+        const stakeAmountA = hre.ethers.parseEther("10.0");
         const stakeAmountB = hre.ethers.parseEther("100.0");
         await creator.execFunction("proposeStake",[gameId], {value: stakeAmountA});
         await opponent.execFunction("proposeStake",[gameId], {value: stakeAmountB});
@@ -1136,7 +1133,53 @@ describe("Mastermind", function () {
         });
 
         describe("-> function accuseAFK", function () {
-            //TODO
+            it("Should revert with the right error if wanna accuse a non member game", async function () {
+                const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
+
+                await expect(griefer.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Sender not part of game");
+            });
+
+            it("Should revert with the right error if wanna accuse befor setup the stack and start the game", async function () {
+                const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
+
+                await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Game has not started");
+            });
+
+            it("Should revert with the right error if player wanna accuse his self (by calling function in his turn)", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+
+                if (creator_first_breaker)
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during own phase");
+                else
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during own phase");
+            });
+
+            it("Should revert with the right error if player wanna accuse twice)", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
+
+                if (creator_first_breaker){
+                    await opponent.execFunction("accuseAFK",[gameId]);
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
+                }else{
+                    await creator.execFunction("accuseAFK",[gameId]);
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
+                }
+            });
+
+            it("Should revert with the right error if TODO", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                // We can increase the time in Hardhat Network by t_disp(hardcodec)
+                // const futureTime = (await time.latest()) + 60;
+                // await time.increaseTo(futureTime);
+                
+                console.log(creator_first_breaker);
+                if (creator_first_breaker){
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("TODO");
+                }else{
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("TODO");
+                }
+            });
         });
 
     });
