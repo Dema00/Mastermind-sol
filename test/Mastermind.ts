@@ -1169,14 +1169,24 @@ describe("Mastermind", function () {
             it("Should let last turn maker accuse next turn maker of being AFK while waiting for code to be set", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
 
-                // We can increase the time in Hardhat Network by t_disp(hardcodec)
-                // const futureTime = (await time.latest()) + 60;
-                // await time.increaseTo(futureTime);
+                //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
                 
                 if (creator_first_breaker){
                     await expect(opponent.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
                 }else{
                     await expect(creator.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
+                }
+            });
+
+            it("Should not let players accuse each other during the turn lock time", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+                
+                if (creator_first_breaker){
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
+                }else{
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
                 }
             });
         });
