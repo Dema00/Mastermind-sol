@@ -1166,18 +1166,17 @@ describe("Mastermind", function () {
                 }
             });
 
-            it("Should revert with the right error if TODO", async function () {
+            it("Should let last turn maker accuse next turn maker of being AFK while waiting for code to be set", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
 
                 // We can increase the time in Hardhat Network by t_disp(hardcodec)
                 // const futureTime = (await time.latest()) + 60;
                 // await time.increaseTo(futureTime);
                 
-                console.log(creator_first_breaker);
                 if (creator_first_breaker){
-                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("TODO");
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
                 }else{
-                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("TODO");
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
                 }
             });
         });

@@ -91,14 +91,24 @@ library Helper {
             accused = GameFunction.getCurrBreaker(_game,false);
         } else {
             require(
-                _game.turn.state == TurnState.guessing,
+                _game.turn.state == TurnState.guessing ||
+                _game.turn.state == TurnState.turn_over,
                 "Cannot accuse during own phase"
             );
 
             accused = GameFunction.getCurrBreaker(_game,true);
         }
 
+        uint delta_time;
+
+        //Adding the remaining unlock time to the afk timer since the player
+        //cannot act, and thus refute the AFK acusation, during that time
+        if(_game.turn.state == TurnState.turn_over &&
+            block.timestamp < _game.turn.lock_time) {
+            delta_time = _game.turn.lock_time - block.timestamp;
+        }
+
         require(_game.afk_timer[accused] == 0, "Already accused");
-        _game.afk_timer[accused] = block.timestamp + _response_time;
+        _game.afk_timer[accused] = block.timestamp + _response_time + delta_time;
     }
 }
