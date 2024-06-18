@@ -179,6 +179,8 @@ contract Mastermind {
     )
     payable public {
         Game storage game = games[_game_id];
+
+        Helper.senderIsNotAFK(game);
         
         uint residual_stake = LobbyFunction.manageStake(game);
 
@@ -232,6 +234,7 @@ contract Mastermind {
     function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         GameFunction.setTurnCode(game,_code_hash);
         emit SecretSet(_game_id, game.curr_turn);
         StateMachine.nextTurnState(game);
@@ -245,6 +248,7 @@ contract Mastermind {
     function guess(bytes32 _game_id, bytes16 _guess) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         GameFunction.addGuess(game, _guess);
 
         // Update turn state
@@ -263,6 +267,7 @@ contract Mastermind {
     ) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         //If you submit different feedback for the same guess you lose since you cheated
         if (GameFunction.addFeedback(game, _feedback)) {
             StateMachine.nextTurnState(game);
@@ -285,6 +290,7 @@ contract Mastermind {
     ) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         Helper.senderIsMaker(game);
 
         // If the revealed code or salt is wrong instant game over
@@ -311,6 +317,7 @@ contract Mastermind {
     ) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
 
         address accused;
         if(msg.sender == game.creator) {
@@ -345,6 +352,7 @@ contract Mastermind {
         /* console.log(game.creator);
         console.logBytes16(_guess); */
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         Helper.senderIsBreaker(game);
         require(
             block.timestamp < game.turn.lock_time,
@@ -373,6 +381,7 @@ contract Mastermind {
     ) public {
         Game storage game = games[_game_id];
         Helper.senderIsPartOfGame(game);
+        Helper.senderIsNotAFK(game);
         Helper.accuseAFK(game,t_afk);
     }
 }

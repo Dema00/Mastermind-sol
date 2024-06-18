@@ -53,6 +53,13 @@ library Helper {
         );
     }
 
+    function senderIsNotAFK(Game storage _game) internal view {
+        require(
+            _game.afk_timer[msg.sender] < block.timestamp,
+            "You were AFK for too long"
+        );
+    }
+
     function accuseAFK(Game storage _game, uint _response_time) internal {
         address accused;
 
