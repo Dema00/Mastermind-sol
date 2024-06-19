@@ -240,7 +240,7 @@ describe("Mastermind", function () {
 
         // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
         if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 9; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
@@ -248,7 +248,7 @@ describe("Mastermind", function () {
             await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
             await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
         }else{
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 9; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
@@ -318,20 +318,16 @@ describe("Mastermind", function () {
 
         // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
         if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 10; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
-            await creator.execFunction("guess",[gameId, tmpGuess2]);
-            await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
             await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
         }else{
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 10; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
-            await opponent.execFunction("guess",[gameId, tmpGuess2]);
-            await creator.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
             await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
         }
 
@@ -470,18 +466,24 @@ describe("Mastermind", function () {
         // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
         const tmpGuess = "0x04030205000000000000000000000000";
         const tmpFeeedback = "0x0003";
+        const corrGuess = "0x02020202000000000000000000000000";
+        const corrFeedback = "0x0400";
 
         // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
         if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 9; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
+            await creator.execFunction("guess",[gameId, corrGuess]);
+            await opponent.execFunction("giveFeedback",[gameId, corrFeedback]);
         }else{
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 9; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
+            await opponent.execFunction("guess",[gameId, corrGuess]);
+            await creator.execFunction("giveFeedback",[gameId, corrFeedback]);
         }
 
         const tmpCorrCode = "0x02020202000000000000000000000000";

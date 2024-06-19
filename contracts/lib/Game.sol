@@ -50,12 +50,19 @@ library GameFunction {
             "Wait for last turn to lock"
         );
 
-        _game.score[getCurrBreaker(_game,false)] += _game.turn.curr_guess;
-        if(_game.turn.curr_guess == _game.guess_amt) 
-            _game.score[getCurrBreaker(_game,false)] += _game.bonus;
+        setPoints(_game);
         if (_game.curr_turn != 0) delete(_game.turn);
         _game.curr_turn += 1;
         _game.turn.state = TurnState.defining_secret;
+    }
+
+    function setPoints(Game storage _game) internal {
+        _game.score[getCurrBreaker(_game,false)] += _game.turn.curr_guess;
+        if(_game.turn.curr_guess == _game.guess_amt && _game.turn.curr_cc != _game.code_len) 
+            _game.score[getCurrBreaker(_game,false)] += _game.bonus;
+        
+       /*  console.log("TURN:",_game.curr_turn);
+        console.log("CREATOR:",_game.score[_game.creator],"OPPONENT:",_game.score[_game.opponent]); */
     }
 
     /**
@@ -143,6 +150,8 @@ library GameFunction {
 
         // Get turn and increase guess amount
         _game.turn.curr_guess += 1;
+        /* console.log("GUESS AMT:",_game.turn.curr_guess);
+        console.logBytes16(_guess); */
         _game.turn.guess = _guess;
     }
 
@@ -265,8 +274,11 @@ library GameFunction {
         );
         if (_game.score[_game.creator] > _game.score[_game.opponent]) {
             return _game.creator;
-        } else {
+        } 
+        else if (_game.score[_game.creator] < _game.score[_game.opponent]) {
             return _game.opponent;
+        } else {
+            return address(0);
         }
     }
 

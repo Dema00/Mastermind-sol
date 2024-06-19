@@ -307,6 +307,7 @@ contract Mastermind {
 
             if (game.curr_turn == game.turns_amt) {
                 StateMachine.nextState(game);
+                GameFunction.setPoints(game);
                 emit GameWinner(_game_id, GameFunction.getWinner(game));
             }
         }
@@ -338,7 +339,14 @@ contract Mastermind {
             "The reward cannot be claimed yet"
         );
         address winner = GameFunction.getWinner(game);
-        pending_return[winner] += (game.stake * 2);
+        if (winner != address(0)) {
+            pending_return[winner] += (game.stake * 2);
+        } else {
+            pending_return[game.creator] += game.stake;
+            pending_return[game.opponent] += game.stake;
+        }
+
+
         emit RewardClaimed(_game_id, winner);
         delete(games[_game_id]);
     }
