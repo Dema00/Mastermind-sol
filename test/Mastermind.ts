@@ -1514,8 +1514,6 @@ describe("Mastermind", function () {
         });
     });
 
-    //TODO bisogna fare il test controllando the il feedback sia completo e poi fare il claim reward e il withdrow
-    //TODO bisogna fare un gioco intero e vedere chi vince in base ai punti/ punti bonus
     describe("Withdrawals", function () {
         it("Should increse the personal balance of the winner", async function () {
             const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2, winner } = await loadFixture(inGameOver);
@@ -1633,7 +1631,7 @@ describe("Mastermind", function () {
                     expect(_game_id).to.equal(gameId);
                     expect(_claimer).to.equal(hre.ethers.ZeroAddress);
                 });
-                
+
                 const initialBalanceW = await ethers.provider.getBalance(creator.address);
                 await creator.execFunction("withdraw",[]);
                 const finalBalanceW = await ethers.provider.getBalance(creator.address);
