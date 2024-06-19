@@ -54,8 +54,9 @@ library Helper {
     }
 
     function senderIsNotAFK(Game storage _game) internal view {
+        //console.log("SENDER:",msg.sender,"TIME",block.timestamp);
         require(
-            _game.afk_timer[msg.sender] < block.timestamp,
+            _game.afk_timer[msg.sender] > block.timestamp || _game.afk_timer[msg.sender] == 0,
             "You were AFK for too long"
         );
     }

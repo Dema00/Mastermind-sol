@@ -327,14 +327,14 @@ contract Mastermind {
         }
 
         if (game.afk_timer[accused] != 0 &&
-            game.afk_timer[accused] > block.timestamp ) {
+            game.afk_timer[accused] < block.timestamp ) {
             
             GameFunction.forceGameOver(game,msg.sender);
             emit GameWinner(_game_id, msg.sender);
         }
         
         require(
-            block.timestamp > game.turn.lock_time,
+            block.timestamp >= game.turn.lock_time,
             "The reward cannot be claimed yet"
         );
         address winner = GameFunction.getWinner(game);
@@ -372,6 +372,8 @@ contract Mastermind {
         }
 
         emit disputeWon(_game_id, winner);
+
+        pending_return[winner] += (game.stake * 2);
 
         delete(games[_game_id]);
     }
