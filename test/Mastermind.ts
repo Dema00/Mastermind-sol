@@ -226,7 +226,7 @@ describe("Mastermind", function () {
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
     }
 
-    // il primo breaker indovina dopo 8 sbagli, l'altro non indovina mai (PUNTEGGIO )
+    // il primo breaker indovina dopo 7 sbagli, l'altro non indovina mai (PUNTEGGIO )
     async function inGameCompetitiveGame() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
@@ -240,7 +240,7 @@ describe("Mastermind", function () {
 
         // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
         if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < 7; i++) {
                 await creator.execFunction("guess",[gameId, tmpGuess]);
                 await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
@@ -248,7 +248,7 @@ describe("Mastermind", function () {
             await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
             await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
         }else{
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < 7; i++) {
                 await opponent.execFunction("guess",[gameId, tmpGuess]);
                 await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
             }
@@ -1622,6 +1622,30 @@ describe("Mastermind", function () {
                 expect(finalBalanceL).to.be.lt(initialBalanceL);
                 expect(finalBalanceW).to.be.gt(initialBalanceW);
             }
+        });
+
+        it("Should let the both players claim back the stack in case of a tie", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameVeryCompetitiveGame);
+
+                // is not important who call it (generally the winner), he must be part of the game
+                await opponent.execFunction("claimReward",[gameId]);
+                await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_claimer).to.equal(hre.ethers.ZeroAddress);
+                });
+                
+                const initialBalanceW = await ethers.provider.getBalance(creator.address);
+                await creator.execFunction("withdraw",[]);
+                const finalBalanceW = await ethers.provider.getBalance(creator.address);
+    
+                const initialBalanceL = await ethers.provider.getBalance(opponent.address);
+                await opponent.execFunction("withdraw",[]);
+                const finalBalanceL = await ethers.provider.getBalance(opponent.address);
+    
+                // balance not equal because we pay to use function withdraw
+                expect(finalBalanceW).to.be.gt(initialBalanceW);
+                expect(finalBalanceL).to.be.gt(initialBalanceL);
+    
         });
 
         it("Should let player withdrow (after claim rewards) if the opponent did not reply to the AFK accuse in time", async function () {
