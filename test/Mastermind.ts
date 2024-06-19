@@ -175,6 +175,34 @@ describe("Mastermind", function () {
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
     }
 
+    async function inGameCorrectGuess() {
+        const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+        // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+        const tmpGuess = "0x04030205000000000000000000000000";
+        const tmpGuess2 = "0x01020304000000000000000000000000";
+        const tmpFeeedback = "0x0003";
+        const tmpFeeedback2 = "0x0400";
+
+        // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+        if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            for (let i = 0; i < 5; i++) {
+                await creator.execFunction("guess",[gameId, tmpGuess]);
+                await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await creator.execFunction("guess",[gameId, tmpGuess2]);
+            await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+        }else{
+            for (let i = 0; i < 5; i++) {
+                await opponent.execFunction("guess",[gameId, tmpGuess]);
+                await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await opponent.execFunction("guess",[gameId, tmpGuess2]);
+            await creator.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+        }
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
+    }
+
     // progress fixture
     async function inGameRevealing() {
         const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
@@ -196,6 +224,162 @@ describe("Mastermind", function () {
             }
         }
         return { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code };
+    }
+
+    // il primo breaker indovina dopo 8 sbagli, l'altro non indovina mai (PUNTEGGIO )
+    async function inGameCompetitiveGame() {
+        const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+        // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+        const tmpGuess = "0x04030205000000000000000000000000";
+        const tmpGuess2 = "0x01020304000000000000000000000000";
+        const tmpFeeedback = "0x0003";
+        const tmpFeeedback2 = "0x0400";
+        const tmpCorrCode = "0x01020304000000000000000000000000";
+        const tmpSalt = "0x10000001";
+
+        // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+        if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
+            for (let i = 0; i < 8; i++) {
+                await creator.execFunction("guess",[gameId, tmpGuess]);
+                await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await creator.execFunction("guess",[gameId, tmpGuess2]);
+            await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+            await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+        }else{
+            for (let i = 0; i < 8; i++) {
+                await opponent.execFunction("guess",[gameId, tmpGuess]);
+                await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await opponent.execFunction("guess",[gameId, tmpGuess2]);
+            await creator.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+            await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+        }
+
+        // We can increase the time in Hardhat Network by t_disp(hardcodec)
+        const futureTime = (await time.latest()) + 60;
+        await time.increaseTo(futureTime);
+        
+        const code2 = "0x02020202000000000000000000000000";
+        const salt = "0x20000002"
+        const codeHash = hre.ethers.solidityPackedKeccak256(["bytes16","bytes4"],[code2,salt]);
+        let receipt;
+        if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
+            receipt = await creator.execFunction("setCodeHash",[gameId, codeHash]);
+        } else {
+            receipt = await opponent.execFunction("setCodeHash",[gameId, codeHash]);
+        }
+        const new_turn = findEvent(receipt, "SecretSet").args._turn_num;
+        
+        // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+        const tmpGuessTurn2 = "0x04030205000000000000000000000000";
+        const tmpFeeedbackTurn2 = "0x0003";
+
+        // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+        if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            for (let i = 0; i < 10; i++) {
+                await creator.execFunction("guess",[gameId, tmpGuessTurn2]);
+                await opponent.execFunction("giveFeedback",[gameId, tmpFeeedbackTurn2]);
+            }
+        }else{
+            for (let i = 0; i < 10; i++) {
+                await opponent.execFunction("guess",[gameId, tmpGuessTurn2]);
+                await creator.execFunction("giveFeedback",[gameId, tmpFeeedbackTurn2]);
+            }
+        }
+
+        const tmpCorrCodeTurn2 = "0x02020202000000000000000000000000";
+        const tmpSalt2 = "0x20000002";
+
+        if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
+            await opponent.execFunction("revealCode",[gameId, tmpCorrCodeTurn2, tmpSalt2]);
+        else
+            await creator.execFunction("revealCode",[gameId, tmpCorrCodeTurn2, tmpSalt2]);
+        
+        // We can increase the time in Hardhat Network by t_disp(hardcoded)
+        const futureTime2 = (await time.latest()) + 60;
+        await time.increaseTo(futureTime2);
+
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker };
+    }
+
+    // il primo player non indovina mai, l'altro non indovina mai
+    async function inGameVeryCompetitiveGame() {
+        const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+        // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+        const tmpGuess = "0x04030205000000000000000000000000";
+        const tmpGuess2 = "0x01020304000000000000000000000000";
+        const tmpFeeedback = "0x0003";
+        const tmpFeeedback2 = "0x0400";
+        const tmpCorrCode = "0x01020304000000000000000000000000";
+        const tmpSalt = "0x10000001";
+
+        // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+        if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
+            for (let i = 0; i < 8; i++) {
+                await creator.execFunction("guess",[gameId, tmpGuess]);
+                await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await creator.execFunction("guess",[gameId, tmpGuess2]);
+            await opponent.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+            await opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+        }else{
+            for (let i = 0; i < 8; i++) {
+                await opponent.execFunction("guess",[gameId, tmpGuess]);
+                await creator.execFunction("giveFeedback",[gameId, tmpFeeedback]);
+            }
+            await opponent.execFunction("guess",[gameId, tmpGuess2]);
+            await creator.execFunction("giveFeedback",[gameId, tmpFeeedback2]);
+            await creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt]);
+        }
+
+        // We can increase the time in Hardhat Network by t_disp(hardcodec)
+        const futureTime = (await time.latest()) + 60;
+        await time.increaseTo(futureTime);
+        
+        const code2 = "0x02020202000000000000000000000000";
+        const salt = "0x20000002"
+        const codeHash = hre.ethers.solidityPackedKeccak256(["bytes16","bytes4"],[code2,salt]);
+        let receipt;
+        if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker){
+            receipt = await creator.execFunction("setCodeHash",[gameId, codeHash]);
+        } else {
+            receipt = await opponent.execFunction("setCodeHash",[gameId, codeHash]);
+        }
+        const new_turn = findEvent(receipt, "SecretSet").args._turn_num;
+        
+        // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+        const tmpGuessTurn2 = "0x04030205000000000000000000000000";
+        const tmpFeeedbackTurn2 = "0x0003";
+
+        // Turn set to '1n' after the SetCodeHash, if creator_first_breaker=true the odd turns are for creator player
+        if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker){  // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+            for (let i = 0; i < 10; i++) {
+                await creator.execFunction("guess",[gameId, tmpGuessTurn2]);
+                await opponent.execFunction("giveFeedback",[gameId, tmpFeeedbackTurn2]);
+            }
+        }else{
+            for (let i = 0; i < 10; i++) {
+                await opponent.execFunction("guess",[gameId, tmpGuessTurn2]);
+                await creator.execFunction("giveFeedback",[gameId, tmpFeeedbackTurn2]);
+            }
+        }
+
+        const tmpCorrCodeTurn2 = "0x02020202000000000000000000000000";
+        const tmpSalt2 = "0x20000002";
+
+        if ((new_turn % 2n === 1n) && creator_first_breaker || (new_turn % 2n === 0n) && !creator_first_breaker)
+            await opponent.execFunction("revealCode",[gameId, tmpCorrCodeTurn2, tmpSalt2]);
+        else
+            await creator.execFunction("revealCode",[gameId, tmpCorrCodeTurn2, tmpSalt2]);
+        
+        // We can increase the time in Hardhat Network by t_disp(hardcoded)
+        const futureTime2 = (await time.latest()) + 60;
+        await time.increaseTo(futureTime2);
+
+        return { creator, opponent, griefer, manager, gameId, creator_first_breaker };
     }
 
     // progress fixture
@@ -470,7 +654,7 @@ describe("Mastermind", function () {
             });
         });
 
-        //TODO aggiungi evento per fare emit StakeSent, come sopra ma quando il gioco piu avanti caricando un fixture di in un momento a caso ADD dovrebbe andare gia
+        //TODO aggiungi evento per fare emit StakeSent, come sopra ma quando il gioco piu avanti caricando un fixture di in un momento a caso ADD dovrebbe andare gia ma non ho modo di andare nel branch
 
         it("Should handle stake failing and emit StakeFailed event with the failing value", async function () {
             const { manager, creator, opponent, gameId } = await loadFixture(GameCreatedFixture);
@@ -482,8 +666,6 @@ describe("Mastermind", function () {
                 expect(_game_id).to.equal(gameId);
                 expect(_opp_stake).to.equal(hre.ethers.parseEther("2.0"));
             });
-
-            //TODO pending return deve essere controllato che sia aumentato, qui e in ogni StakeFailed ADD non posso a meno di withdrow da aggiungere enlla relazione
         });
         
         it("Should revert with the right error if wanna stack on non existing game", async function () {
@@ -656,6 +838,14 @@ describe("Mastermind", function () {
                     await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Not your guessing turn");
                 else
                     await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Not your guessing turn");
+            });
+
+            it("Should revert with the right error if wana guess but the game is in another game phase", async function () {
+                const { creator, opponent, griefer, manager, gameId } = await loadFixture(GameCreatedFixture);
+                // Set guess code
+                const tmpGuess = "0x10000000000000000000000000000000"; // Assuming that this make sense
+
+                await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("Cannot advance game not in playing state");
             });
 
             it("Should revert with the right error if wanna guess the code on a non member game", async function () {
@@ -952,6 +1142,20 @@ describe("Mastermind", function () {
                 });
             });
 
+            //TODO una tecnica per non perdere la partita puo essede di dire all'avversario che ha indovinato(anche se non e' vero) per evitare il code reveal e la dispute
+            it("Should allow reveal the code when last feedback is 'all match'", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameCorrectGuess);
+
+                const tmpCorrCode = "0x01020304000000000000000000000000";
+                const tmpSalt = "0x10000001";
+        
+                // se siamo al primo turno e non ho fatto io il codice tocca a me, se siamo al secondo turno e ho fatto io il codice tocca a me
+                if ((curr_turn % 2n === 1n) && creator_first_breaker || (curr_turn % 2n === 0n) && !creator_first_breaker)
+                    await expect(opponent.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.not.be.reverted;
+                else
+                    await expect(creator.execFunction("revealCode",[gameId, tmpCorrCode, tmpSalt])).to.not.be.reverted;
+            });
+        
             it("Should revert with the right error if caller is not part of the game", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameRevealing);
 
@@ -997,7 +1201,6 @@ describe("Mastermind", function () {
                 });
             });
 
-            // TODO vado in claim o direttamente in withdrow?
             it("Should let claim the reward if the opponent did not reply to the AFK accuse in time", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
 
@@ -1032,6 +1235,44 @@ describe("Mastermind", function () {
                         expect(_claimer).to.equal(creator.address);
                     });
                 }
+            });
+
+            it("Should set the correct winner after a competitive game", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameCompetitiveGame);
+
+                    // is not important who call it (generally the winner), he must be part of the game
+                    await opponent.execFunction("claimReward",[gameId]);
+                    await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                        expect(_game_id).to.equal(gameId);
+                        if (creator_first_breaker)
+                            expect(_claimer).to.equal(creator.address);
+                        else
+                            expect(_claimer).to.equal(opponent.address);
+                    });
+            });
+
+            it("Should set the correct winner after no one guess correctly", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker} = await loadFixture(inGameVeryCompetitiveGame);
+
+                    // is not important who call it (generally the winner), he must be part of the game
+                    await opponent.execFunction("claimReward",[gameId]);
+                    await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_claimer).to.equal(hre.ethers.ZeroAddress);
+                    });
+            });
+
+            it("Should revert with the right error if wanna claim reward twice", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameEnding);
+
+                // We can increase the time in Hardhat Network by t_disp(hardcoded)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
+
+                // is not important who call it (generally the winner), he must be part of the game
+                await opponent.execFunction("claimReward",[gameId]);
+                // reverted with 'Sender not part of game' because after first call the game is deleted
+                await expect(creator.execFunction("claimReward",[gameId])).to.be.revertedWith("Sender not part of game");
             });
 
             it("Should revert with the right error if wanna claim reward during dispute time", async function () {
@@ -1331,7 +1572,6 @@ describe("Mastermind", function () {
             expect(finalBalanceL).to.be.gt(initialBalanceL);
         });
 
-        // TODO ho provato a fare prima il claim ma non posso perche il game viene cancellato quindi "Sender not part of game"
         it("Should let player withdrow his win in case opponent cheats in feedback", async function () {
             const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameCheatDisputeTime);
 
@@ -1381,5 +1621,62 @@ describe("Mastermind", function () {
                 expect(finalBalanceW).to.be.gt(initialBalanceW);
             }
         });
+
+        it("Should let player withdrow (after claim rewards) if the opponent did not reply to the AFK accuse in time", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+            // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+            const tmpGuess = "0x04030205000000000000000000000000";
+            const tmpFeeedback = "0x0003";
+
+            if (creator_first_breaker){
+                await opponent.execFunction("accuseAFK",[gameId]);
+                //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 360;
+                await time.increaseTo(futureTime);
+
+                await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                // is not important who call it (generally the winner), he must be part of the game
+                await opponent.execFunction("claimReward",[gameId]);
+                await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_claimer).to.equal(opponent.address);
+                });
+                const initialBalanceW = await ethers.provider.getBalance(opponent.address);
+                await opponent.execFunction("withdraw",[]);
+                const finalBalanceW = await ethers.provider.getBalance(opponent.address);
+    
+                const initialBalanceL = await ethers.provider.getBalance(creator.address);
+                await creator.execFunction("withdraw",[]);
+                const finalBalanceL = await ethers.provider.getBalance(creator.address);
+
+                expect(finalBalanceL).to.be.lt(initialBalanceL);
+                expect(finalBalanceW).to.be.gt(initialBalanceW);
+            }else{
+                await creator.execFunction("accuseAFK",[gameId]);
+                //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 360;
+                await time.increaseTo(futureTime);
+
+                await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                // is not important who call it (generally the winner), he must be part of the game
+                await creator.execFunction("claimReward",[gameId]);
+                await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_claimer).to.equal(creator.address);
+                });
+                const initialBalanceW = await ethers.provider.getBalance(creator.address);
+                await creator.execFunction("withdraw",[]);
+                const finalBalanceW = await ethers.provider.getBalance(creator.address);
+    
+                const initialBalanceL = await ethers.provider.getBalance(opponent.address);
+                await opponent.execFunction("withdraw",[]);
+                const finalBalanceL = await ethers.provider.getBalance(opponent.address);
+
+                expect(finalBalanceL).to.be.lt(initialBalanceL);
+                expect(finalBalanceW).to.be.gt(initialBalanceW);
+            }
+        });
+
     });
 });
