@@ -997,6 +997,43 @@ describe("Mastermind", function () {
                 });
             });
 
+            // TODO vado in claim o direttamente in withdrow?
+            it("Should let claim the reward if the opponent did not reply to the AFK accuse in time", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+                // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+                const tmpGuess = "0x04030205000000000000000000000000";
+                const tmpFeeedback = "0x0003";
+
+                if (creator_first_breaker){
+                    await opponent.execFunction("accuseAFK",[gameId]);
+                    //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                    const futureTime = (await time.latest()) + 360;
+                    await time.increaseTo(futureTime);
+
+                    await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                    // is not important who call it (generally the winner), he must be part of the game
+                    await opponent.execFunction("claimReward",[gameId]);
+                    await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_claimer).to.equal(opponent.address);
+                    });
+                }else{
+                    await creator.execFunction("accuseAFK",[gameId]);
+                    //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                    const futureTime = (await time.latest()) + 360;
+                    await time.increaseTo(futureTime);
+
+                    await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                    // is not important who call it (generally the winner), he must be part of the game
+                    await creator.execFunction("claimReward",[gameId]);
+                    await manager.test("RewardClaimed", (_game_id, _claimer) => {
+                        expect(_game_id).to.equal(gameId);
+                        expect(_claimer).to.equal(creator.address);
+                    });
+                }
+            });
+
             it("Should revert with the right error if wanna claim reward during dispute time", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2 } = await loadFixture(inGameEnding);
 
@@ -1133,6 +1170,72 @@ describe("Mastermind", function () {
         });
 
         describe("-> function accuseAFK", function () {
+            it("Should let last turn maker accuse next turn maker of being AFK while waiting for code to be set", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 60;
+                await time.increaseTo(futureTime);
+                
+                if (creator_first_breaker){
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
+                }else{
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
+                }
+            });
+
+            it("Should let play if AFK time is not passed", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+                // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+                const tmpGuess = "0x04030205000000000000000000000000";
+                const tmpFeeedback = "0x0003";
+
+                if (creator_first_breaker){
+                    await opponent.execFunction("accuseAFK",[gameId]);
+                    await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.not.be.reverted;
+                }else{
+                    await creator.execFunction("accuseAFK",[gameId]);
+                    await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.not.be.reverted;
+                }
+            });
+
+            it("Should revert with the right error if wanna keep playing after time for AFK is passed", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameHashSetFixture);
+
+                // Plain text guess: theoretical max playable 16 code lenght with theoretical max 16*16 color
+                const tmpGuess = "0x04030205000000000000000000000000";
+                const tmpFeeedback = "0x0003";
+
+                if (creator_first_breaker){
+                    await opponent.execFunction("accuseAFK",[gameId]);
+                    //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                    const futureTime = (await time.latest()) + 360;
+                    await time.increaseTo(futureTime);
+                    await expect(creator.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                }else{
+                    await creator.execFunction("accuseAFK",[gameId]);
+                    //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                    const futureTime = (await time.latest()) + 360;
+                    await time.increaseTo(futureTime);
+                    await expect(opponent.execFunction("guess",[gameId, tmpGuess])).to.be.revertedWith("You were AFK for too long");
+                }
+            });
+
+            it("Should revert with the right error if wanna accuse during the dispute (turn lock) time", async function () {
+                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
+
+                //We can increase the time in Hardhat Network by t_disp(hardcodec)
+                const futureTime = (await time.latest()) + 20;  // t_disp is 60
+                await time.increaseTo(futureTime);
+                
+                if (creator_first_breaker){
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
+                }else{
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
+                }
+            });
+
             it("Should revert with the right error if wanna accuse a non member game", async function () {
                 const { creator, opponent, gameId, manager, griefer } = await loadFixture(GameCreatedFixture);
 
@@ -1165,34 +1268,11 @@ describe("Mastermind", function () {
                     await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
                 }
             });
-
-            it("Should let last turn maker accuse next turn maker of being AFK while waiting for code to be set", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
-
-                //We can increase the time in Hardhat Network by t_disp(hardcodec)
-                const futureTime = (await time.latest()) + 60;
-                await time.increaseTo(futureTime);
-                
-                if (creator_first_breaker){
-                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
-                }else{
-                    await expect(creator.execFunction("accuseAFK",[gameId])).to.not.be.reverted;
-                }
-            });
-
-            it("Should not let players accuse each other during the turn lock time", async function () {
-                const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameDisputeTime);
-                
-                if (creator_first_breaker){
-                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
-                }else{
-                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during turn lock time");
-                }
-            });
         });
-
     });
 
+    //TODO bisogna fare il test controllando the il feedback sia completo e poi fare il claim reward e il withdrow
+    //TODO bisogna fare un gioco intero e vedere chi vince in base ai punti/ punti bonus
     describe("Withdrawals", function () {
         it("Should increse the personal balance of the winner", async function () {
             const { creator, opponent, griefer, manager, gameId, creator_first_breaker, new_turn, code2, winner } = await loadFixture(inGameOver);
@@ -1215,8 +1295,8 @@ describe("Mastermind", function () {
             await loserProfile.execFunction("withdraw",[]);
             const finalBalanceL = await ethers.provider.getBalance(loserProfile.address);
 
-            expect(finalBalanceW).to.be.gt(initialBalanceW);
             expect(finalBalanceL).to.be.lt(initialBalanceL);
+            expect(finalBalanceW).to.be.gt(initialBalanceW);
         });
 
         it("Should have stacked the amount for the game", async function () {
@@ -1249,6 +1329,57 @@ describe("Mastermind", function () {
             // balance not equal because we pay to use function withdraw
             expect(finalBalanceW).to.be.gt(initialBalanceW);
             expect(finalBalanceL).to.be.gt(initialBalanceL);
+        });
+
+        // TODO ho provato a fare prima il claim ma non posso perche il game viene cancellato quindi "Sender not part of game"
+        it("Should let player withdrow his win in case opponent cheats in feedback", async function () {
+            const { creator, opponent, griefer, manager, gameId, creator_first_breaker, curr_turn, code } = await loadFixture(inGameCheatDisputeTime);
+
+            const tmpGuess = "0x04030205000000000000000000000000";  //the dispute is correct, the feedback was wrong
+
+            if (creator_first_breaker)
+                await creator.execFunction("dispute",[gameId, tmpGuess]);
+            else
+                await opponent.execFunction("dispute",[gameId, tmpGuess]);
+
+            await manager.test("disputeSent", (_game_id, _sender) => {
+                expect(_game_id).to.equal(gameId);
+                expect(_sender).to.not.be.undefined;
+            });
+
+            if (creator_first_breaker){
+                await manager.test("disputeWon", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_winner).to.equal(creator.address);
+                });
+
+                const initialBalanceW = await ethers.provider.getBalance(creator.address);
+                await creator.execFunction("withdraw",[]);
+                const finalBalanceW = await ethers.provider.getBalance(creator.address);
+    
+                const initialBalanceL = await ethers.provider.getBalance(opponent.address);
+                await opponent.execFunction("withdraw",[]);
+                const finalBalanceL = await ethers.provider.getBalance(opponent.address);
+
+                expect(finalBalanceL).to.be.lt(initialBalanceL);
+                expect(finalBalanceW).to.be.gt(initialBalanceW);
+            } else {
+                await manager.test("disputeWon", (_game_id, _winner) => {
+                    expect(_game_id).to.equal(gameId);
+                    expect(_winner).to.equal(opponent.address);
+                });
+
+                const initialBalanceW = await ethers.provider.getBalance(opponent.address);
+                await opponent.execFunction("withdraw",[]);
+                const finalBalanceW = await ethers.provider.getBalance(opponent.address);
+    
+                const initialBalanceL = await ethers.provider.getBalance(creator.address);
+                await creator.execFunction("withdraw",[]);
+                const finalBalanceL = await ethers.provider.getBalance(creator.address);
+
+                expect(finalBalanceL).to.be.lt(initialBalanceL);
+                expect(finalBalanceW).to.be.gt(initialBalanceW);
+            }
         });
     });
 });

@@ -14,35 +14,64 @@ const p4 = accountsList[4]; // 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
 const mastermindAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 const abi = [
-    "function createGame(address _opponent, uint _code_len, uint _code_symbols_amt, uint _bonus) public returns (bytes32)",
-    "event GameReady(bytes32 _game_id)",
-
+    "function createGame(address _opponent, uint8 _code_len, uint8 _code_symbols_amt, uint _bonus) public returns(bytes32)",
     "function joinGame(bytes32 _game_id) public",
+    "function proposeStake(bytes32 _game_id)payable public",
+    "function withdraw() external returns (bool)",
+    "function setCodeHash(bytes32 _game_id, bytes32 _code_hash) public",
+    "function guess(bytes32 _game_id, bytes16 _guess) public",
+    "function giveFeedback(bytes32 _game_id,bytes2 _feedback) public",
+    "function revealCode(bytes32 _game_id,bytes16 _code_sol,bytes4 _salt) public",
+    "function claimReward(bytes32 _game_id) public",
+    "function dispute(bytes32 _game_id,bytes16 _guess) public",
+    "function accuseAFK(bytes32 _game_id) public",
+    
+    "event GameCreated(bytes32 indexed _game_id, address indexed _game_creator)",
     "event PlayersReady(bytes32 indexed _game_id, uint _matchmaking_time)",
+    "event StakeSuccessful(bytes32 indexed _game_id, uint _stake)",
+    "event StakeFailed(bytes32 indexed _game_id, uint _opp_stake)",
+    "event StakeSent(bytes32 indexed _game_id, uint _stake)",
+    "event GameStart(bytes32 indexed _game_id, bool _creator_is_first_breaker)",
+    "event SecretSet(bytes32 indexed _game_id, uint _turn_num)",
+    "event GuessSent(bytes32 indexed _game_id, uint _turn_num, bytes16 _guess)",
+    "event FeedbackSent(bytes32 indexed _game_id, uint _turn_num, bytes2 _feedback)",
+    "event TurnOver(bytes32 indexed _game_id, uint _turn_num, bytes16 _code_sol)",
+    "event GameWinner(bytes32 indexed _game_id, address _winner)",
+    "event disputeSent(bytes32 indexed _game_id, address _sender)",
+    "event disputeWon(bytes32 indexed _game_id, address _winner)",
+    "event RewardClaimed (bytes32 indexed _game_id, address _claimer)",
 ];
 
 const iface = new ethers.utils.Interface(abi);
 
 const contract = new ethers.Contract(mastermindAddress, abi, ethers.provider.getSigner());
 
-// Step 1
+let tx;
+let log;
+let decodedData;
 // Player1 create a game with opponent Player2
-// Player1 create another game with casual opponent
 //
 contract = contract.connect(p1);
-const gameTxA = await contract.createGame(p4.address, 4, 8, 10);
-const receipt = await gameTxA.wait();    // Wait for the transaction to be mined
+tx = await contract.createGame(p4.address, 4, 6, 10);
+const receipt = await tx.wait();    // Wait for the transaction to be mined
 const gameIdA = receipt.events[0].data;
-
+// Player3 create another game with casual opponent
+//
 contract = contract.connect(p3);
-const gameTxB = await contract.createGame(nullAccount, 4, 8, 10);
-receipt = await gameTxB.wait();    // Wait for the transaction to be mined
+tx = await contract.createGame(nullAccount, 4, 6, 10);
+receipt = await tx.wait();    // Wait for the transaction to be mined
 const gameIdB = receipt.events[0].data;
-// Step 2
-// Player2 join the game
-// 
+// Player2 join the gameA
+//
+contract = contract.connect(p2);
+tx = await contract.joinGame(gameIdA);
+receipt = await tx.wait();    // Wait for the transaction to be mined
+log = receipt.logs.find(log => log.topics[0] === iface.getEventTopic("PlayersReady"));    // Find the log for the PlayersReady event
+console.log(decodedData = iface.decodeEventLog("PlayersReady", log.data, log.topics));    // Pront the decoded event
+// Random player (Player4) join the gameB
+//
 contract = contract.connect(p4);
-const joinA = await contract.joinGame(gameIdA);
-receipt = await joinA.wait();    // Wait for the transaction to be mined
-const log = receipt.logs.find(log => log.topics[0] === iface.getEventTopic("PlayersReady"));    // Find the log for the PlayersReady event
-const decodedData = iface.decodeEventLog("PlayersReady", log.data, log.topics);    // Decode the event log
+tx = await contract.joinGame(gameIdB);
+receipt = await tx.wait();    // Wait for the transaction to be mined
+log = receipt.logs.find(log => log.topics[0] === iface.getEventTopic("PlayersReady"));    // Find the log for the PlayersReady event
+console.log(decodedData = iface.decodeEventLog("PlayersReady", log.data, log.topics));    // Pront the decoded event
