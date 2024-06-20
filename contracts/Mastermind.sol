@@ -37,12 +37,7 @@ contract Mastermind {
      */
     event GameCreated(bytes32 indexed _game_id, address indexed _game_creator);
 
-    /**
-     * @dev Log a successful matchmaking instance
-     * @param _game_id Id of the game associated with the match
-     * @param _matchmaking_time Timestamp of succesfull matchmaking
-     */
-    event PlayersReady(bytes32 indexed _game_id, uint _matchmaking_time);
+    event PlayersReady(bytes32 indexed _game_id,  uint8 _code_len, uint8 _code_symbols_amt, uint _bonus);
 
     /**
      * @dev Log a succesfull staking procedure
@@ -166,7 +161,7 @@ contract Mastermind {
         LobbyFunction.addOpponent(game, msg.sender);
 
         // Emit game readiness signal, useful for the client, will be used with web3.js or python
-        emit PlayersReady(_game_id, block.timestamp);
+        emit PlayersReady(_game_id, game.code_len, game.code_symbols_amt, game.bonus);
     }
 
     /**
