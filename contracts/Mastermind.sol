@@ -37,7 +37,7 @@ contract Mastermind {
      */
     event GameCreated(bytes32 indexed _game_id, address indexed _game_creator);
 
-    event PlayersReady(bytes32 indexed _game_id,  uint8 _code_len, uint8 _code_symbols_amt, uint _bonus);
+    event PlayersReady(bytes32 indexed _game_id, address _opponent, uint8 _code_len, uint8 _code_symbols_amt, uint _bonus);
 
     /**
      * @dev Log a succesfull staking procedure
@@ -57,13 +57,13 @@ contract Mastermind {
      */
     event GameStart( bytes32 indexed _game_id, bool _creator_is_first_breaker);
 
-    event SecretSet( bytes32 indexed _game_id, uint _turn_num);
+    event SecretSet( bytes32 indexed _game_id, uint8 _turn_num);
 
-    event GuessSent( bytes32 indexed _game_id, uint _turn_num, bytes16 _guess);
+    event GuessSent( bytes32 indexed _game_id, uint8 _turn_num, uint8 _guess_num, bytes16 _guess);
 
-    event FeedbackSent( bytes32 indexed _game_id, uint _turn_num, bytes2 _feedback);
+    event FeedbackSent( bytes32 indexed _game_id, uint8 _turn_num, bytes2 _feedback);
 
-    event TurnOver( bytes32 indexed _game_id, uint _turn_num, bytes16 _code_sol);
+    event TurnOver( bytes32 indexed _game_id, uint8 _turn_num, bytes16 _code_sol);
 
     event GameWinner( bytes32 indexed _game_id, address _winner);
 
@@ -161,7 +161,7 @@ contract Mastermind {
         LobbyFunction.addOpponent(game, msg.sender);
 
         // Emit game readiness signal, useful for the client, will be used with web3.js or python
-        emit PlayersReady(_game_id, game.code_len, game.code_symbols_amt, game.bonus);
+        emit PlayersReady(_game_id, game.opponent, game.code_len, game.code_symbols_amt, game.bonus);
     }
 
     /**
@@ -248,7 +248,7 @@ contract Mastermind {
 
         // Update turn state
         StateMachine.nextTurnState(game);
-        emit GuessSent(_game_id, game.curr_turn, _guess);
+        emit GuessSent(_game_id, game.curr_turn, game.turn.curr_guess, _guess);
     }
 
     /**

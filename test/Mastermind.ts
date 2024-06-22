@@ -803,7 +803,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -823,7 +823,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(new_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -892,7 +892,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -968,7 +968,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -994,7 +994,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -1025,7 +1025,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -1054,7 +1054,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess);
@@ -1080,7 +1080,7 @@ describe("Mastermind", function () {
                 else
                     await opponent.execFunction("guess",[gameId, tmpGuess2]);
 
-                await manager.test("GuessSent", (_game_id, _new_turn, _guess) => {
+                await manager.test("GuessSent", (_game_id, _new_turn, _guess_amt, _guess) => {
                     expect(_game_id).to.equal(gameId);
                     expect(_new_turn).to.equal(curr_turn);
                     expect(_guess).to.equal(tmpGuess2);
