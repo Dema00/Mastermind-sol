@@ -28,6 +28,7 @@ library GameFunction {
         }
 
         _game.state = GameState.playing;
+        _game.turn.state = TurnState.defining_secret;
     }
 
     /**
@@ -109,10 +110,14 @@ library GameFunction {
         Game storage _game,
         bool _mode
     ) internal view returns (address) {
+        uint8 c_t = _game.curr_turn;
+        if (c_t == 0) {
+            c_t = 1;
+        }
         address[2] memory players = 
         checkMode(_game.creator_is_first_breaker, _mode) ? 
         [_game.opponent, _game.creator] : [_game.creator,_game.opponent];
-        return players[_game.curr_turn % 2];
+        return players[c_t % 2];
     }
 
     function checkMode(bool a, bool b) public pure returns (bool) {

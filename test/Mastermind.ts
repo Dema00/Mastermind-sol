@@ -1495,20 +1495,20 @@ describe("Mastermind", function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
 
                 if (creator_first_breaker)
-                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during own phase");
-                else
                     await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during own phase");
+                else
+                    await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Cannot accuse during own phase");
             });
 
             it("Should revert with the right error if player wanna accuse twice)", async function () {
                 const { creator, opponent, griefer, manager, gameId, creator_first_breaker } = await loadFixture(inGameFixture);
 
                 if (creator_first_breaker){
-                    await opponent.execFunction("accuseAFK",[gameId]);
-                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
-                }else{
                     await creator.execFunction("accuseAFK",[gameId]);
                     await expect(creator.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
+                }else{
+                    await opponent.execFunction("accuseAFK",[gameId]);
+                    await expect(opponent.execFunction("accuseAFK",[gameId])).to.be.revertedWith("Already accused");
                 }
             });
         });
